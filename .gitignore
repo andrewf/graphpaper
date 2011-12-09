@@ -1,0 +1,7 @@
+obj
+Makefile
+*.make
+*.a
+
+*.swp
+

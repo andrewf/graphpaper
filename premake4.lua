@@ -1,0 +1,11 @@
+solution "graphpaper"
+    language "C"
+    configurations {"release", "debug"}
+    project "libgraphpaper"
+        files "*.c"
+        excludes "test.c"
+        kind "StaticLib"
+    project "graphtest"
+        files "test.c"
+        kind "ConsoleApp"
+        links "libgraphpaper"
