@@ -11,11 +11,11 @@ end
 solution "graphpaper"
     language "C"
     configurations {"release", "debug"}
+    includedirs "src/cutest"
     project "graphpaper"
         files "src/graphpaper/**.c"
         kind "StaticLib"
     project "graphtest"
         files {"src/cutest/CuTest.c", "src/test/**.c"}
-        includedirs "src/cutest"
         kind "ConsoleApp"
         links "graphpaper"
