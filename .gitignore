@@ -4,4 +4,6 @@ Makefile
 *.a
 *.swp
 *.swo
-
+src/test/AllTests.c
+sample.database
+graphtest
