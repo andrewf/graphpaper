@@ -32,11 +32,11 @@ create table if not exists config (
 --      /         \             \     /
 --     v           v             v   v
 --   Edges        Cards        So he says...
-
-
-
-insert into cards (title, text) values ("hi there", "Welcome to graph paper");
-insert into cards (title, text) values ("Edges", "Edges are connections between cards.");
+ 
+ 
+ 
+ insert into cards (title, text) values ("hi there", "Welcome to graph paper");
+ insert into cards (title, text) values ("Edges", "Edges are connections between cards.");
 insert into cards (title, text) values ("Cards", "Cards can hold any text you want them to.");
 
 insert into cards (title, text) values ("Joke", "A man walks into a bar");
