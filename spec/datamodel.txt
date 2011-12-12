@@ -1,0 +1,31 @@
+The data model of GraphPaper is, of course, the interesting part. Understanding
+how GraphPaper thinks is essential for understanding how it is designed and
+how to use it.
+
+There are two major components: the card and the edge. There are a number of
+other supporting data types as well.
+
+--Card--
+
+The main attributes of a card are its title and text. It also has a position in
+the workspace and a size, both in viewport-independent coordinates. Any
+component of the position can be negative. It also has a creation date and last-
+modified date. It has an ID chosen by sqlite.
+
+--Edge--
+
+Each edge has an origin card, destination card, and type. It also has an ID
+chosen by sqlite.
+
+--Edge Type--
+
+Edge types are distinct objects. It mostly contains an id and name, but also
+contains the styles used for the edge, though it's possible this is beyond
+the purview of the basic lib.
+
+Edge types are referenced by the user by their names.
+
+--------
+
+There is also a table of configuration values, with a key-value pair in each
+row.

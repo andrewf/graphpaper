@@ -1,0 +1,25 @@
+List view is an optional mode that shows all cards in a list. This allows
+the user to keep track of cards that are hidden or far off the beaten path
+of the workspace, so nothing gets lost.
+
+It is activated by a view menu entry or a keyboard shortcut. It shows up as a
+sidebar on the left side of the window that can be expanded or shrunk.
+
+It contains a tree-type control with the top level being a list of all cards
+in the workspace. All that is shown is the title or a preview. The entry is
+dimmed if the card is hidden, but only slightly.
+
+When each entry is expanded, it shows:
+ * card text.
+ * outgoing edges
+ * incoming edges
+
+Edges are also shown dimly if they are hidden.
+
+The card text can be edited, perhaps in a dialog.
+
+The edge entries contain, and facilitate editing:
+ * edge type
+ * the other end of the edge ("origin" or "destination" depending). These
+should be made to appear like links, and take you to the list entry of the card.
+

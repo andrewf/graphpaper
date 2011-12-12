@@ -1,0 +1,102 @@
+The Workspace is the main editing view in graphpaper. It consists of a
+scrollable white plane on which are rendered Cards and the Edges between them.
+
+The size of the workspace is determined dynamically by the maximum positions+
+widths of the cards.
+
+--Viewport--
+
+The viewport is the window onto the workspace. It can be scrolled with scroll-
+bars, or by simply dragging anywhere inside the viewport. It should have 
+momentum when dragging, so you can flick it. When things like cards or ends of
+edges are dragged off, it should follow them across the workspace; if the
+cursor is pushed further off the screen, it should move faster. If the action
+is cancelled, it scrolls back quickly to where it started.
+
+The viewport can be scrolled smoothly, with as little effect as possible on
+the ability to edit its contents.
+
+When scrolling or zooming, a preview box should be shown on (for example) the
+lower right corner of the window, showing the position of the viewport box
+within the workspace, and giving an idea of the layout of all the cards.
+
+The viewport can be scrolled to some distance (perhaps its own width) past the
+normal edge of the workspace. The workspace is temporarily expanded to
+accomodate it. If no card is created out there, the workspace is re-collapsed
+when the viewport moves out.
+
+--Cards--
+
+Cards are rectangles. They can be resized by dragging any edge or corner with
+the mouse. When the mouse moves over a portion of the edge which allows dragging
+to resize, the cursor changes to an appropriate resizer-type cursor.
+
+To create a new card, double-click in any open space. (There should be a
+shortcut to create new cards in an automatically-determined position while
+editing cards, with another shortcut for going back to the original)
+
+The card's title is shown in bold. The text is below, separated by about a
+newline's distance. When either the title or text is clicked, an editing mode
+is activated, with a cursor and keyboard shortcuts and all that implies. The 
+editing cursor can be moved freely between the title and text, despite being
+stored separately (this can be compromised).
+
+Each edge of the card has a "handle" for dragging new edges out. It is a (probably dark blue) circular segment. When hovered, it expands to show it is will be
+activated when clicked. To create an edge, the user clicks on it and drags
+either to an existing card or to an empty space. When it is dragged over a card, the card highlights a certain color around its edges. When it is released over
+a card, the edge is directed to that card. When it is released in empty space,
+a new note is created for it to connect to. When ESC is pressed while the edge
+has not been released, the edge is cancelled. When it is dragged off the edge
+of the viewport, the viewport follows it.
+
+The type of the edge can be determined in one of three ways:
+ * A modifier held down during the initial click and optionally drag of the
+edge.
+ * A dialog activated when the mouse is released. The keyboard-driven dialog
+can easily create new node types. The dialog can be disabled, in which case...
+ * A default or null type is assigned by default.
+
+The card can be moved by shift-clicking anywhere and dragging. When dragged off
+the edge of the viewport, the viewport will scroll in the appropriate direction,
+at a speed determined by how far off the edge the cursor is.
+
+Multiple cards can be "selected" by ctrl-clicking them. They can then by moved
+by shift-dragging any of them. They can also be deleted in bulk this way.
+
+Cards can be hidden by selecting them and hitting ctrl-h or something like
+that. They can be unhidden selectively in the list view, or all unhidden at
+once from the view menu.
+
+--Edges--
+
+Creating edges has already been covered.
+
+Edges shapes are determined at runtime, based on the positions of the cards
+they connect. Their type determines at least their color and thickness. An edge
+type is basically a string. Associations between types and styles are, I guess,
+stored in the configuration table of the db or something, or a special style
+table.
+
+To change either of the endpoints of
+an edge, you drag the endpoint from its current card to the new one. Again,
+when dragged off the viewport, the viewport follows it. To give enough
+clearance to avoid resizing the card, the edge can be dragged from any point
+up to, say, half to a full inch from the edge of the card. When the cursor is
+in a position to grab the edge, it lights up.
+
+The type of an edge can be changed by clicking on the edge in the middle. It
+lights up when the mouse is over it. When clicked, a dialog comes up allowing
+the user to modify the type of the edge, and any other properties it might
+have.
+
+When hovering over an edge, you can press delete to remove the edge. They can
+be multiply selected with ctrl click and deleted all at once, as well.
+
+You can select an edge or edges and hide them by hitting ctrl-h, same as cards.
+They can be unhidden from the list view.
+
+When both ends of an edge are hidden, the edge is implicitly hidden. When only
+one end is hidden, you should probably show the bit closest to the visible
+node, and make it possible to unhide the other end. I'm not sure how...
+Right-click on edge? Or have it go to a little blob that, when clicked, unhides
+the actual note.
