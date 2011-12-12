@@ -2,6 +2,6 @@ obj
 Makefile
 *.make
 *.a
-
 *.swp
+*.swo
 
