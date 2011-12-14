@@ -6,4 +6,4 @@ Makefile
 *.swo
 src/test/AllTests.c
 sample.database
-graphtest
+test

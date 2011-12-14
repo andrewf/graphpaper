@@ -15,7 +15,8 @@ solution "graphpaper"
     project "graphpaper"
         files "src/graphpaper/**.c"
         kind "StaticLib"
-    project "graphtest"
+    project "test"
         files {"src/cutest/CuTest.c", "src/test/**.c"}
         kind "ConsoleApp"
         links "graphpaper"
+
