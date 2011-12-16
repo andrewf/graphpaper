@@ -18,5 +18,5 @@ solution "graphpaper"
     project "test"
         files {"src/cutest/CuTest.c", "src/test/**.c"}
         kind "ConsoleApp"
-        links "graphpaper"
+        links {"graphpaper", "dl", "pthread"}
 
