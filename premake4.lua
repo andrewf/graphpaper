@@ -4,6 +4,7 @@ if _ACTION == "clean" then
     os.execute "rm -f src/tests/AllTests.c"
 else
     -- manually generate some files
+    os.execute "sqlite3 sample.database < schema.sql"
     os.execute "sqlite3 sample.database < sampledata.sql"
     os.execute "cd src/graphpaper && ../cutest/make-tests.sh > ../test/AllTests.c"
 end
