@@ -1,7 +1,7 @@
 create table if not exists cards (
     id integer primary key,
-    title varchar,
-    text varchar,
+    title text,
+    text text,
     created date,
     last_modified date
 );
@@ -15,14 +15,14 @@ create table if not exists edges (
 
 create table if not exists edge_types (
     id integer primary key,
-    name varchar,
-    color varchar,
-    thickness varchar
+    name text,
+    color text,
+    thickness text
 );
 
 create table if not exists config (
-    key varchar,
-    value varchar
+    key text constraint unique_key unique on conflict replace,
+    value text
 );
 
 
