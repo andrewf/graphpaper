@@ -5,5 +5,5 @@ Makefile
 *.swp
 *.swo
 src/test/AllTests.c
-sample.database
+*.database
 test
