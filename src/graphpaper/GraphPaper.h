@@ -6,10 +6,7 @@
 
 #include "sqlite3.h"
 
-
-#define GP_OK 0
-#define GP_ERROR 1
-
+#include "GPErrors.h"
 
 typedef struct {
     sqlite3* connection;
@@ -42,7 +39,7 @@ typedef struct {
 
 int GPFile_Open(char*, GPFile**);
 void GPFile_Close(GPFile*);
-int GPFile_NumCards(GPFile*);
+GPError GPFile_NumCards(GPFile*, int*);
 int GPFile_NumEdges(GPFile*);
 char *GPFile_ConfGet(char*); /* or out param? */
 void GPFile_ConfSet(char *key, char *value);

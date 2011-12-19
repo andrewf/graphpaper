@@ -40,11 +40,11 @@ void GPFile_Close(GPFile* gpfile){
 }
 
 /*
-Returns the number of cards in the GraphPaper file/
+Sets its second param to the number of cards in the file. Return GP_OK
+or GP_ERROR.
 */
-int GPFile_NumCards(GPFile* gpfile){
+GPError GPFile_NumCards(GPFile* gpfile, int* out_num){
     int rc;
-    int numcards;
     sqlite3_stmt* stmt;
     /* create statement 'select count() from cards' */
     rc = sqlite3_prepare_v2(
@@ -54,18 +54,22 @@ int GPFile_NumCards(GPFile* gpfile){
         &stmt,
         NULL
     );
-    /* I'm just going to assume it succeeded, since it has no reason not to */
+    /* Bail if it failed */
+    if(rc != SQLITE_OK){
+        sqlite3_finalize(stmt);
+        return GP_ERROR;
+    }
     /* run the statement */
-    numcards = 0;
+    *out_num = 0;
     while(SQLITE_DONE != rc){
         rc = sqlite3_step(stmt);
         if(SQLITE_ROW == rc){
-            numcards = sqlite3_column_int(stmt, 0);
+            *out_num = sqlite3_column_int(stmt, 0);
         }
     }
     /* now clean stuff up */
     sqlite3_finalize(stmt); /* assume it succeeds */
-    return numcards;
+    return GP_OK;
 }
 
 
@@ -76,7 +80,9 @@ void TestSample(CuTest* tc){
         CuFail(tc, "Failed to open sample database? What?");
     }
     /* test it for stuff */
-    CuAssert(tc, "Wrong number of cards in sample", 6 == GPFile_NumCards(gpfile));
+    int num_cards;
+    CuAssert(tc, "GPFile_NumCards failed", GPFile_NumCards(gpfile, &num_cards)==GP_OK);
+    CuAssert(tc, "Wrong number of cards in sample", 6 == num_cards);
     /* close it */
     GPFile_Close(gpfile);
 }
