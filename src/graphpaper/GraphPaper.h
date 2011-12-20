@@ -10,6 +10,7 @@
 
 typedef struct {
     sqlite3* connection;
+    sqlite3_stmt* numcards_stmt;
 } GPFile;
 
 typedef struct {

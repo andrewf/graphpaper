@@ -15,24 +15,43 @@ int GPFile_Open(char* filename, GPFile** outfile){
         return GP_ERROR;
     }
     /* open connection */
-    int error;
+    int rc;
     if(0 == filename){
-        sqlite3_open(":memory:", &(gpfile->connection));
+        rc = sqlite3_open(":memory:", &(gpfile->connection));
     } else {
-        sqlite3_open(filename, &(gpfile->connection));
+        rc = sqlite3_open(filename, &(gpfile->connection));
     }
-    if(SQLITE_OK != error){
+    if(SQLITE_OK != rc){
         return GP_ERROR;
+    }
+    /* prepare statements */
+    /* num cards statement */
+    rc = sqlite3_prepare_v2(
+        gpfile->connection,
+        "select count() from cards",
+        -1,
+        &gpfile->numcards_stmt,
+        NULL
+    );
+    if(rc != SQLITE_OK){
+        goto error_exit;
     }
     /* all good */
     *outfile = gpfile;
     return GP_OK;
+    /* go here if stuff went south */
+    error_exit:
+    sqlite3_close(gpfile->connection);
+    free(gpfile);
+    return GP_ERROR;
 }
 
 /*
 Call on GPFiles before exiting to release them.
 */
 void GPFile_Close(GPFile* gpfile){
+    /* delete prepared statements */
+    sqlite3_finalize(gpfile->numcards_stmt);
     /* close sqlite connection */
     sqlite3_close(gpfile->connection);
     /* free file object */
@@ -45,33 +64,21 @@ or GP_ERROR.
 */
 GPError GPFile_NumCards(GPFile* gpfile, int* out_num){
     int rc;
-    sqlite3_stmt* stmt;
-    /* create statement 'select count() from cards' */
-    rc = sqlite3_prepare_v2(
-        gpfile->connection,
-        "select count() from cards",
-        -1,
-        &stmt,
-        NULL
-    );
-    /* Bail if it failed */
-    if(rc != SQLITE_OK){
-        sqlite3_finalize(stmt);
-        return GP_ERROR;
-    }
     /* run the statement */
     *out_num = 0;
     while(SQLITE_DONE != rc){
-        rc = sqlite3_step(stmt);
+        rc = sqlite3_step(gpfile->numcards_stmt);
         if(SQLITE_ROW == rc){
-            *out_num = sqlite3_column_int(stmt, 0);
+            *out_num = sqlite3_column_int(gpfile->numcards_stmt, 0);
+        } else {
+            return GP_ERROR;
         }
     }
     /* now clean stuff up */
-    sqlite3_finalize(stmt); /* assume it succeeds */
+    if(SQLITE_OK != sqlite3_reset(gpfile->numcards_stmt))
+        { return GP_ERROR; }
     return GP_OK;
 }
-
 
 void TestSample(CuTest* tc){
     /* open file */
