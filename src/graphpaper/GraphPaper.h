@@ -11,6 +11,7 @@
 typedef struct {
     sqlite3* connection;
     sqlite3_stmt* numcards_stmt;
+    sqlite3_stmt* numedges_stmt;
 } GPFile;
 
 typedef struct {
@@ -41,7 +42,7 @@ typedef struct {
 int GPFile_Open(char*, GPFile**);
 void GPFile_Close(GPFile*);
 GPError GPFile_NumCards(GPFile*, int*);
-int GPFile_NumEdges(GPFile*);
+GPError GPFile_NumEdges(GPFile*, int*);
 char *GPFile_ConfGet(char*); /* or out param? */
 void GPFile_ConfSet(char *key, char *value);
 
