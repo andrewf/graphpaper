@@ -3,7 +3,8 @@
 
 typedef enum {
     GP_OK=0,
-    GP_ERROR=0,
+    GP_ERROR,
+    GP_KEY_MISSING
 } GPError;
 
 #endif

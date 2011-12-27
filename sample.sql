@@ -21,3 +21,5 @@ insert into edges (origin, destination) values (1, 3);
 insert into edges (origin, destination) values (4, 5);
 insert into edges (origin, destination) values (6, 5);
 
+insert into config values ("autosave", 1);
+insert into config values ("color", "blue");

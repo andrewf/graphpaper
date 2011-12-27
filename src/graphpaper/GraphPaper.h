@@ -12,6 +12,7 @@ typedef struct {
     sqlite3* connection;
     sqlite3_stmt* numcards_stmt;
     sqlite3_stmt* numedges_stmt;
+    sqlite3_stmt* confget_stmt;
 } GPFile;
 
 typedef struct {
@@ -39,12 +40,15 @@ typedef struct {
 } GPEdge;
 
 
+void GPFree(void*); /* for now, a wrapper for free() */
+
+
 int GPFile_Open(char*, GPFile**);
 void GPFile_Close(GPFile*);
 GPError GPFile_NumCards(GPFile*, int*);
 GPError GPFile_NumEdges(GPFile*, int*);
-char *GPFile_ConfGet(char*); /* or out param? */
-void GPFile_ConfSet(char *key, char *value);
+GPError GPFile_ConfGet(GPFile*, char*, char**);
+GPError GPFile_ConfSet(char *key, char *value);
 
 
 GPCard* GPCard_New(GPFile* file);
