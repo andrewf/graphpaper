@@ -2,11 +2,11 @@ if _ACTION == "clean" then
     -- clean up manually generated files
     os.execute "rm -f sample.database"
     os.execute "rm -f test.database"
-    os.execute "rm -f src/tests/AllTests.c"
+    os.execute "rm -f src/test/AllTests.c"
 else
     -- manually generate files
     os.execute "./generate-sample-dbs.sh"
-    os.execute "cd src/graphpaper && ../cutest/make-tests.sh > ../test/AllTests.c"
+    os.execute "./gen-tests.sh"
 end
 
 solution "graphpaper"
