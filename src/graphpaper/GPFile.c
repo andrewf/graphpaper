@@ -79,17 +79,14 @@ GPError GPFile_NumCards(GPFile* gpfile, int* out_num){
         rc = sqlite3_step(stmt);
         switch(rc){
             case SQLITE_DONE:
-                printf("NumCards done\n");
                 done = 1;
                 break;
             case SQLITE_ROW:
                 *out_num = sqlite3_column_int(stmt, 0);
-                printf("NumCards row %d\n", *out_num);
                 break;
             case SQLITE_BUSY:
                 break;
             default:
-                printf("NumCards, rc = %d, erroring\n", rc);
                 sqlite3_reset(stmt);
                 return GP_ERROR;
         }
@@ -197,7 +194,6 @@ void TestNumCards(CuTest* tc){
     /* test it for stuff */
     int num_cards;
     CuAssert(tc, "GPFile_NumCards failed", GPFile_NumCards(gpfile, &num_cards)==GP_OK);
-    printf("num_cards: %d\n", num_cards);
     CuAssert(tc, "Wrong number of cards in sample (should be 6)", 6 == num_cards);
     /* close it */
     GPFile_Close(gpfile);
