@@ -72,29 +72,30 @@ or GP_ERROR.
 */
 GPError GPFile_NumCards(GPFile* gpfile, int* out_num){
     int rc, done = 0;
+    sqlite3_stmt* stmt = gpfile->numcards_stmt;
     /* run the statement */
     *out_num = 0;
     while(!done){
-        rc = sqlite3_step(gpfile->numcards_stmt);
+        rc = sqlite3_step(stmt);
         switch(rc){
             case SQLITE_DONE:
                 printf("NumCards done\n");
                 done = 1;
                 break;
             case SQLITE_ROW:
-                *out_num = sqlite3_column_int(gpfile->numcards_stmt, 0);
+                *out_num = sqlite3_column_int(stmt, 0);
                 printf("NumCards row %d\n", *out_num);
                 break;
             case SQLITE_BUSY:
                 break;
             default:
                 printf("NumCards, rc = %d, erroring\n", rc);
-                sqlite3_reset(gpfile->numcards_stmt);
+                sqlite3_reset(stmt);
                 return GP_ERROR;
         }
     }
     /* now clean stuff up */
-    if(SQLITE_OK != sqlite3_reset(gpfile->numcards_stmt))
+    if(SQLITE_OK != sqlite3_reset(stmt))
         { return GP_ERROR; }
     return GP_OK;
 }
@@ -106,24 +107,25 @@ or GP_ERROR
 GPError GPFile_NumEdges(GPFile* gpfile, int* out_num){
     int rc, done = 0;
     *out_num = 0;
+    sqlite3_stmt* stmt = gpfile->numedges_stmt;
     while(!done){
-        rc = sqlite3_step(gpfile->numedges_stmt);
+        rc = sqlite3_step(stmt);
         switch(rc){
             case SQLITE_DONE:
                 done = 1;
                 break;
             case SQLITE_ROW:
-                *out_num = sqlite3_column_int(gpfile->numedges_stmt, 0);
+                *out_num = sqlite3_column_int(stmt, 0);
                 break;
             case SQLITE_BUSY:
                 break;
             default:
-                sqlite3_reset(gpfile->numedges_stmt);
+                sqlite3_reset(stmt);
                 return GP_ERROR;
         }
     }
     /* reset it so it can be reused next call */
-    if(SQLITE_OK != sqlite3_reset(gpfile->numedges_stmt))
+    if(SQLITE_OK != sqlite3_reset(stmt))
         { return GP_ERROR; }
     return GP_OK;
 }
