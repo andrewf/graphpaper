@@ -133,26 +133,40 @@ Set out param to config value. Return GP_KEY_MISSING if the key does not exist,
 and set out param to null.
 */
 GPError GPFile_ConfGet(GPFile* gpfile, char* key, char** out_value){
-    int rc;
+    int rc, done = 0;
     *out_value = NULL;
+    sqlite3_stmt* stmt = gpfile->confget_stmt;
     /* bind key to first param of statement */
-    if(sqlite3_bind_text(gpfile->confget_stmt, 1, key, -1, SQLITE_TRANSIENT) != SQLITE_OK){ /* length of key is unknown, sqlite should make its own copy */
+    if(sqlite3_bind_text(stmt, 1, key, -1, SQLITE_TRANSIENT) != SQLITE_OK){ /* length of key is unknown, sqlite should make its own copy */
         return GP_ERROR;
     }
     /* run the statement */
-    do{
-        rc = sqlite3_step(gpfile->confget_stmt);
-        if(SQLITE_ROW == rc){
-            /* get out the string, copy it */
-            *out_value = strdup(sqlite3_column_text(gpfile->confget_stmt, 0));
-            return GP_OK;
-        } else {
-            /* TODO: handle BUSY, other recoverable cases */
-            goto error_exit;
+    while(!done){
+        rc = sqlite3_step(stmt);
+        switch(rc){
+            case SQLITE_DONE:
+                done = 1;
+                break;
+            case SQLITE_ROW:
+                /* get out the string, copy it */
+                *out_value = strdup(sqlite3_column_text(stmt, 0));
+                break;
+            case SQLITE_BUSY:
+                break;
+            default:
+                sqlite3_reset(stmt);
+                goto error_exit;
         }
-    } while (rc != SQLITE_DONE);
+    }
     /* reset statement (and clear bindings) */
-    /*return GP_OK;*/
+    sqlite3_clear_bindings(stmt);
+    if(sqlite3_reset(stmt) != SQLITE_OK)
+        return GP_ERROR;
+    /* return appropriate value */
+    if(0 == *out_value)
+        return GP_KEY_MISSING;
+    return GP_OK;
+
     error_exit:
     if(NULL != *out_value)
         { free(*out_value); }
@@ -208,8 +222,14 @@ void TestConfGet_KeyPresent(CuTest* tc){
     GPFile_Close(gpfile);
 }
 
-/*void TestConfGet_KeyMissing(CuTest* tc){
+void TestConfGet_KeyMissing(CuTest* tc){
     GPFile* gpfile = OpenTestFile(tc);
-    char *value = 0;
+    char *value = (void*)0xdeadbeef;
     /* test */
+    CuAssert(tc, "GPFile_ConfGet failed (should return GP_KEY_MISSING)",
+                GP_KEY_MISSING == GPFile_ConfGet(gpfile, "ohnoyoudint", &value));
+    CuAssert(tc, "GPFile_ConfGet didn't set param to null", 0 == value);
+    /* done */
+    GPFile_Close(gpfile);
+}
 
