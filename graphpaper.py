@@ -39,10 +39,6 @@ class GPViewport(Frame):
         self.width = self.data.config['viewport_w']
         self.height = self.data.config['viewport_h']
         # set size to saved viewport size
-        self.configure(
-            width = self.width,
-            height = self.height,
-        )
         self.pack(expand=1, fill="both")
         # create scrollbars
         self.yscroll = Scrollbar(self)
@@ -50,7 +46,11 @@ class GPViewport(Frame):
         self.xscroll = Scrollbar(self, orient=HORIZONTAL)
         self.xscroll.pack(side="bottom", fill="x")
         # create canvas
-        self.canvas = Canvas(self, bg = "white", scrollregion = (-100, -100, self.width+100, self.height+100))
+        self.canvas = Canvas(self,
+            bg = "white",
+            scrollregion = (-100, -100, self.width+100, self.height+100),
+            width = self.width,
+            height = self.height)
         self.canvas.pack(expand=1, fill="both")
         # draw fake stuff
         self.cards = [ViewportCard(self, card) for card in self.data.get_cards()]
