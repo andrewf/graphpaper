@@ -38,8 +38,9 @@ class GPViewport(Frame):
         self.data = datastore
         self.width = self.data.config['viewport_w']
         self.height = self.data.config['viewport_h']
-        # set size to saved viewport size
+        # display self, create util frame
         self.pack(expand=1, fill="both")
+        self.utility_frame()
         # create scrollbars
         self.yscroll = Scrollbar(self)
         self.yscroll.pack(side="right", fill="y")
@@ -65,6 +66,15 @@ class GPViewport(Frame):
         # set scroll region to bounding box of all card rects
         # with, say, 20 px margin
         pass
+    def utility_frame(self):
+        "create and pack a frame for random tools"
+        self.util = Frame(self, width = 100)
+        self.util.pack(expand=1, fill="y", side=LEFT)
+        def scroll_to_top():
+            self.canvas.xview(MOVETO, 0)
+            self.canvas.yview(MOVETO, 0)
+        button = Button(self.util, text="scroll", command=scroll_to_top)
+        button.pack()
 
 root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
