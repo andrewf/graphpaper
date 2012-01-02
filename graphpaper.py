@@ -14,21 +14,19 @@ class ViewportCard(object):
         self.viewport = viewport
         self.canvas = viewport.canvas
         self.draw()
-        self.rectid = self.textid = None
+        self.window = self.itemid = None
     def draw(self):
-        self.rectid = self.canvas.create_rectangle(
-            (self.card.x, self.card.y, self.card.x+self.card.w, self.card.y+self.card.h),
-            fill="white"
-        )
-        # text with 5px padding
-        pad = 5
-        self.textid = self.canvas.create_text(
-            (self.card.x + pad, self.card.y + pad),
-            width = self.card.w - 2 * pad,
+        self.window = Text(self.canvas)
+        print "creating card, w & h", self.card.w, self.card.h
+        self.window.insert(END, self.card.text)
+        self.itemid = self.canvas.create_window(
+            self.card.x,
+            self.card.y,
+            window = self.window,
             anchor = "nw",
-            justify = "left",
-            text = self.card.text
-        )
+            width = self.card.w,
+            height = self.card.h,
+         )
 
 
 class GPViewport(Frame):
@@ -49,12 +47,17 @@ class GPViewport(Frame):
         # create canvas
         self.canvas = Canvas(self,
             bg = "white",
-            scrollregion = (-100, -100, self.width+100, self.height+100),
             width = self.width,
             height = self.height)
         self.canvas.pack(expand=1, fill="both")
-        # draw fake stuff
+        # bind events
+        self.canvas.bind("<Button-1>", self.mousedown)
+        self.canvas.bind("<ButtonRelease-1>", self.mouseup)
+        self.canvas.bind("<B1-Motion>", self.mousemove)
+        self.canvas.bind("<Key>", self.keydown)
+        # load cards
         self.cards = [ViewportCard(self, card) for card in self.data.get_cards()]
+        self.reset_scroll_region()
         # set up scrolling
         self.yscroll["command"] = self.canvas.yview
         self.xscroll["command"] = self.canvas.xview
@@ -65,7 +68,9 @@ class GPViewport(Frame):
     def reset_scroll_region(self):
         # set scroll region to bounding box of all card rects
         # with, say, 20 px margin
-        pass
+        box = self.canvas.bbox(ALL)
+        print "bbox: ", box
+        self.canvas["scrollregion"] = box
     def utility_frame(self):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)
@@ -75,6 +80,20 @@ class GPViewport(Frame):
             self.canvas.yview(MOVETO, 0)
         button = Button(self.util, text="scroll", command=scroll_to_top)
         button.pack()
+    def mousedown(self, event):
+        # take focus
+        self.canvas.focus_set()
+        # different message if on a card
+        if self.canvas.type(CURRENT) == "text":
+            print "mousedown on text"
+        else:
+            print "boring mousedown"
+    def mouseup(self, event):
+        print "mouseup:", event
+    def mousemove(self, event):
+        print "mousemove:", event
+    def keydown(self, event):
+        print "keydown:", event
 
 root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
