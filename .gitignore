@@ -2,8 +2,9 @@ obj
 Makefile
 *.make
 *.a
+*.pyc
 *.swp
 *.swo
 src/test/AllTests.c
-*.database
+*.sqlite
 test
