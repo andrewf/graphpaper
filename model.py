@@ -9,15 +9,15 @@ class DataStore(object):
         # filename goes to sqlite
         # we'll make up fake data for now
         self.config = { # TODO: replace with custom dict-like obj
-            'viewport_x': 0,
-            'viewport_y': 0,
+            'viewport_x': -120,
+            'viewport_y': -100,
             'viewport_w': 600,
             'viewport_h': 400
         }
         self.cards = [
             Card(self, -100, -50, 200, 100, "Foobar baz\n\nGrup grup jubyr fret yup.\nfkakeander f."),
             Card(self, 10, 20, 150, 300, "I'm a card with one line"),
-            Card(self, 200, 200, 150, 100, "No edges yet\nedges are too hard still. We'll do them later"),
+            Card(self, 200, 200, 150, 100, "No edges yet\n\nedges are too hard still. We'll do them later. Namespaces are a honking great idea. let's do more of those. wait, what?"),
         ]
     def get_cards(self):
         return self.cards
