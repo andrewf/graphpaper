@@ -69,7 +69,7 @@ class GPViewport(Frame):
     def utility_frame(self):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)
-        self.util.pack(expand=1, fill="y", side=LEFT)
+        self.util.pack(fill="y", side=LEFT)
         def scroll_to_top():
             self.canvas.xview(MOVETO, 0)
             self.canvas.yview(MOVETO, 0)
