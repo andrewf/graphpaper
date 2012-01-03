@@ -35,7 +35,6 @@ class ViewportCard(object):
         self.window.lift()
     def shiftmousedown(self, event):
         self.mousedown(event)
-        print "text click with shift"
         self.moving = True
         self.foocoords = (event.x, event.y)
     def mousemove(self, event):
@@ -43,16 +42,14 @@ class ViewportCard(object):
             # coords are relative to card, not canvas
             if self.foocoords:
                 delta = (event.x - self.foocoords[0], event.y - self.foocoords[1])
-                #self.foocoords = None
             else:
                 delta = (event.x, event.y)
             self.canvas.move(self.itemid, delta[0], delta[1])
             self.viewport.reset_scroll_region()
-            print event.x, event.y
     def mouseup(self, event):
         if self.moving:
             self.moving = False
-            print "new coords", self.canvas.coords(self.itemid)
+            #print "new coords", self.canvas.coords(self.itemid)
  
 
 class GPViewport(Frame):
@@ -74,7 +71,10 @@ class GPViewport(Frame):
         self.canvas = Canvas(self,
             bg = "white",
             width = self.width,
-            height = self.height)
+            height = self.height,
+            xscrollincrement = 1,
+            yscrollincrement = 1,
+        )
         self.canvas.pack(expand=1, fill="both")
         # bind events
         self.canvas.bind("<Button-1>", self.mousedown)
@@ -91,11 +91,14 @@ class GPViewport(Frame):
         self.canvas["xscrollcommand"] = self.xscroll.set
         self.canvas.xview(MOVETO, self.data.config['viewport_x'])
         self.canvas.yview(MOVETO, self.data.config['viewport_y'])
+        # set up drag scrolling
+        self.dragging = False
+        self.last_drag_coords = None
     def reset_scroll_region(self):
         # set scroll region to bounding box of all card rects
         # with, say, 20 px margin
         box = self.canvas.bbox(ALL)
-        print "bbox: ", box
+        #print "bbox: ", box
         self.canvas["scrollregion"] = box
     def utility_frame(self):
         "create and pack a frame for random tools"
@@ -115,17 +118,19 @@ class GPViewport(Frame):
     def mousedown(self, event):
         # take focus
         self.canvas.focus_set()
-        # different message if on a card
-        if 'card' in self.canvas.gettags(CURRENT):
-            print "mousedown on text"
-        else:
-            print "boring mousedown"
+        # if not on an object, start dragging
+        if not self.canvas.find_withtag(CURRENT):
+            self.dragging = True
+            self.last_drag_coords = (event.x, event.y)
     def mouseup(self, event):
-        print "mouseup:", event
+        self.dragging = False
     def mousemove(self, event):
-        print "mousemove:", event
+        if self.dragging:
+            self.canvas.xview(SCROLL, self.last_drag_coords[0] - event.x, UNITS)
+            self.canvas.yview(SCROLL, self.last_drag_coords[1] - event.y, UNITS)
+            self.last_drag_coords = (event.x, event.y)
     def keydown(self, event):
-        print "keydown:", event
+        pass
 
 root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
