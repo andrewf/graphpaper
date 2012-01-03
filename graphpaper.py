@@ -14,10 +14,13 @@ class ViewportCard(object):
         self.viewport = viewport
         self.canvas = viewport.canvas
         self.draw()
-        self.window = self.itemid = None
+        self.moving = False
     def draw(self):
         self.window = Text(self.canvas)
-        print "creating card, w & h", self.card.w, self.card.h
+        self.window.bind("<Button-1>", self.mousedown)
+        self.window.bind("<Shift-Button-1>", self.shiftmousedown)
+        self.window.bind("<B1-Motion>", self.mousemove)
+        self.window.bind("<ButtonRelease-1>", self.mouseup)
         self.window.insert(END, self.card.text)
         self.itemid = self.canvas.create_window(
             self.card.x,
@@ -26,8 +29,30 @@ class ViewportCard(object):
             anchor = "nw",
             width = self.card.w,
             height = self.card.h,
-         )
-
+            tags = 'card'
+        )
+    def mousedown(self, event):
+        self.window.lift()
+    def shiftmousedown(self, event):
+        self.mousedown(event)
+        print "text click with shift"
+        self.moving = True
+        self.foocoords = (event.x, event.y)
+    def mousemove(self, event):
+        if self.moving:
+            # coords are relative to card, not canvas
+            if self.foocoords:
+                delta = (event.x - self.foocoords[0], event.y - self.foocoords[1])
+                #self.foocoords = None
+            else:
+                delta = (event.x, event.y)
+            self.canvas.move(self.itemid, delta[0], delta[1])
+            print event.x, event.y
+    def mouseup(self, event):
+        if self.moving:
+            self.moving = False
+            print "new coords", self.canvas.coords(self.itemid)
+ 
 
 class GPViewport(Frame):
     def __init__(self, master, datastore):
@@ -80,11 +105,17 @@ class GPViewport(Frame):
             self.canvas.yview(MOVETO, 0)
         button = Button(self.util, text="scroll", command=scroll_to_top)
         button.pack()
+        def move_card():
+            card = self.cards[0]
+            self.canvas.move(card.itemid, 30, 30)
+            self.reset_scroll_region()
+        button = Button(self.util, text="moveit", command=move_card)
+        button.pack()
     def mousedown(self, event):
         # take focus
         self.canvas.focus_set()
         # different message if on a card
-        if self.canvas.type(CURRENT) == "text":
+        if 'card' in self.canvas.gettags(CURRENT):
             print "mousedown on text"
         else:
             print "boring mousedown"
