@@ -1,3 +1,19 @@
+import sqlite3
+
+class ConfigDict(object):
+    def __init__(self, connection):
+        self.conn = connection
+    def __getitem__(self, key):
+        result = self.conn.execute("select value from config where key = ?", (key,)).fetchone()
+        # result is a 1-tuple or None
+        if result:
+            return result[0]
+        else:
+            return None
+    def __setitem__(self, key, value):
+        self.conn.execute("insert into config values (?, ?)", (key, value))
+        self.conn.commit()
+
 class DataStore(object):
     '''
     Represents a loaded set of cards, edges and edgetypes
@@ -8,12 +24,8 @@ class DataStore(object):
     def __init__(self, filename):
         # filename goes to sqlite
         # we'll make up fake data for now
-        self.config = { # TODO: replace with custom dict-like obj
-            'viewport_x': -120,
-            'viewport_y': -100,
-            'viewport_w': 600,
-            'viewport_h': 400
-        }
+        self.conn = sqlite3.connect(filename)
+        self.config = ConfigDict(self.conn)
         self.cards = [
             Card(self, -100, -50, 200, 100, "Foobar baz\n\nGrup grup jubyr fret yup.\nfkakeander f."),
             Card(self, 10, 20, 150, 300, "I'm a card with one line"),

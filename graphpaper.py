@@ -119,6 +119,12 @@ class GPViewport(Frame):
         button.pack()
     def new_card(self, x, y, w, h):
         self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))
+    def save_scroll_pos(self):
+        # save current scrolling position to config
+        new_x = (self.canvas.canvasx(0))
+        new_y = (self.canvas.canvasy(0))
+        self.data.config["viewport_x"] = new_x
+        self.data.config["viewport_y"] = new_y
     def ctrlclick(self, event):
         default_w = 200
         default_h = 150
@@ -133,7 +139,10 @@ class GPViewport(Frame):
             self.dragging = True
             self.last_drag_coords = (event.x, event.y)
     def mouseup(self, event):
-        self.dragging = False
+        if self.dragging:
+            # commit scroll
+            self.save_scroll_pos()
+            self.dragging = False
     def mousemove(self, event):
         if self.dragging:
             self.canvas.xview(SCROLL, self.last_drag_coords[0] - event.x, UNITS)
@@ -142,7 +151,6 @@ class GPViewport(Frame):
     def keydown(self, event):
         pass
     def resize(self, event):
-        print "resize:", event.width-2, event.height-2 # configure adds 2 extra pixels?
         self.data.config["viewport_w"] = event.width - 2
         self.data.config["viewport_h"] = event.height - 2
 
