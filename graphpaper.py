@@ -82,6 +82,7 @@ class GPViewport(Frame):
         self.canvas.bind("<Control-Button-1>", self.ctrlclick)
         self.canvas.bind("<B1-Motion>", self.mousemove)
         self.canvas.bind("<Key>", self.keydown)
+        self.canvas.bind("<Configure>", self.resize)
         # load cards
         self.cards = [ViewportCard(self, card) for card in self.data.get_cards()]
         self.reset_scroll_region()
@@ -117,7 +118,7 @@ class GPViewport(Frame):
         button = Button(self.util, text="moveit", command=move_card)
         button.pack()
     def new_card(self, x, y, w, h):
-        self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))    
+        self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))
     def ctrlclick(self, event):
         default_w = 200
         default_h = 150
@@ -140,6 +141,10 @@ class GPViewport(Frame):
             self.last_drag_coords = (event.x, event.y)
     def keydown(self, event):
         pass
+    def resize(self, event):
+        print "resize:", event.width-2, event.height-2 # configure adds 2 extra pixels?
+        self.data.config["viewport_w"] = event.width - 2
+        self.data.config["viewport_h"] = event.height - 2
 
 root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
