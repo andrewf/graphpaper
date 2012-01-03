@@ -47,6 +47,7 @@ class ViewportCard(object):
             else:
                 delta = (event.x, event.y)
             self.canvas.move(self.itemid, delta[0], delta[1])
+            self.viewport.reset_scroll_region()
             print event.x, event.y
     def mouseup(self, event):
         if self.moving:
