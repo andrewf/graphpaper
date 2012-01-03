@@ -79,6 +79,7 @@ class GPViewport(Frame):
         # bind events
         self.canvas.bind("<Button-1>", self.mousedown)
         self.canvas.bind("<ButtonRelease-1>", self.mouseup)
+        self.canvas.bind("<Control-Button-1>", self.ctrlclick)
         self.canvas.bind("<B1-Motion>", self.mousemove)
         self.canvas.bind("<Key>", self.keydown)
         # load cards
@@ -115,6 +116,14 @@ class GPViewport(Frame):
             self.reset_scroll_region()
         button = Button(self.util, text="moveit", command=move_card)
         button.pack()
+    def new_card(self, x, y, w, h):
+        self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))    
+    def ctrlclick(self, event):
+        default_w = 200
+        default_h = 150
+        new_x = self.canvas.canvasx(event.x) - default_w/2
+        new_y = self.canvas.canvasy(event.y) - default_h/2
+        self.new_card(new_x, new_y, default_w, default_h)
     def mousedown(self, event):
         # take focus
         self.canvas.focus_set()

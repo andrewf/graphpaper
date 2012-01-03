@@ -21,6 +21,10 @@ class DataStore(object):
         ]
     def get_cards(self):
         return self.cards
+    def new_card(self, x, y, w, h, text=''):
+        card = Card(self, x, y, w, h, text)
+        self.cards.append(card)
+        return card
 
 
 class Card(object):
