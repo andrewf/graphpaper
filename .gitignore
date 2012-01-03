@@ -1,5 +1,4 @@
 obj
-Makefile
 *.make
 *.a
 *.pyc

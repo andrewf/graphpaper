@@ -1,4 +1,10 @@
 import sqlite3
+import hashlib
+
+def sha1(dat):
+    hasher = hashlib.sha1()
+    hasher.update(dat)
+    return hasher.hexdigest()
 
 class ConfigDict(object):
     def __init__(self, connection):
@@ -23,21 +29,30 @@ class DataStore(object):
     '''
     def __init__(self, filename):
         # filename goes to sqlite
-        # we'll make up fake data for now
         self.conn = sqlite3.connect(filename)
         self.config = ConfigDict(self.conn)
-        self.cards = [
-            Card(self, -100, -50, 200, 100, "Foobar baz\n\nGrup grup jubyr fret yup.\nfkakeander f."),
-            Card(self, 10, 20, 150, 300, "I'm a card with one line"),
-            Card(self, 200, 200, 150, 100, "No edges yet\n\nedges are too hard still. We'll do them later. Namespaces are a honking great idea. let's do more of those. wait, what?"),
-        ]
+        # load cards into self.cards
+        self.cards = []
+        for hsh, data in self.conn.execute("select * from cards"):
+            self.cards.append(Card(self, hash=hsh, data=data))
     def get_cards(self):
         return self.cards
-    def new_card(self, x, y, w, h, text=''):
-        card = Card(self, x, y, w, h, text)
+    def new_card(self, x, y, w, h):
+        card = Card(self, x, y, w, h)
         self.cards.append(card)
         return card
+    # GraphPaper datastore API. The standard bits
+    def create_card(self, data):
+        # takes card in string serialize form, adds it to db, returns new id
+        new_hash = sha1(data)
+        self.conn.execute("insert into cards (key, value) values (?, ?)", (new_hash, data))
+        # ignore theoretical collision possibility ^^^
+        self.conn.commit()
+        return new_hash
 
+
+class InvalidCard(Exception):
+    pass
 
 class Card(object):
     '''
@@ -45,14 +60,41 @@ class Card(object):
     data store. For now, that means it hits sqlite which (I think)
     hits the disk. Someday we'll do something more intelligent.
     Probably after a rewrite.
+
+    members:
+    * hash: the current id as supplied by the data store
+    * _x, _y, _w, _h: position and dimensions of card
+    * _text: text of the card
+    * x, y, w, h, text: properties that save when modified
     '''
-    def __init__(self, datastore, x, y, w, h, text):
+    def __init__(self, datastore, *args, **kwargs):
+        '''
+        Creates a representation of a card object. Must be called in one
+        of two ways
+        
+        Card(datastore, hash=<hash>, data=<data>)
+        Card(datastore, x, y, w, h)
+
+        The first form is for loading a card from the store. The second is
+        for creating new cards. I'm not going to do much checking, so be
+        careful.
+        '''
         self.datastore = datastore
-        self._x = x
-        self._y = y
-        self._w = w
-        self._h = h
-        self._text = text
+        # there should either be args or kwargs, but not both. just assume it:
+        if kwargs:
+            # loading
+            self.hash = kwargs['hash']
+            self.unpack(kwargs['data']) # let errors out
+        else:
+            # new card, with no hash yet
+            assert len(args) == 4
+            self._x = args[0]
+            self._y = args[1]
+            self._w = args[2]
+            self._h = args[3]
+            self._text = ''
+            # save it and keep id
+            self.hash = self.datastore.create_card(str(self))
     def get_x(self): return self._x
     def get_y(self): return self._y
     def get_w(self): return self._w
@@ -62,6 +104,14 @@ class Card(object):
         # write self in standard format
         # send command to datastore
         pass
+    def set_pos(self, x, y):
+        self._x = x
+        self._y = y
+        self.save()
+    def set_dimensions(self, w, h):
+        self._w = w
+        self._h = h
+        self.save()
     def set_x(self, x):
         self._x = x
         self.save()
@@ -82,6 +132,42 @@ class Card(object):
     w = property(get_w, set_w)
     h = property(get_h, set_h)
     text = property(get_text, set_text)
+    def __str__(self):
+        return '{%d,%d,%d,%d}%s' % (
+            self._x,
+            self._y,
+            self._w,
+            self._h,
+            self.text
+        )
+    def unpack(self, string):
+        # unpacks self from format created in above string
+        # raises InvalidCard if data is bad
+        if string[0] != '{':
+            raise InvalidCard("expected '{' at beginning")
+        end_of_header = string.find('}')
+        if end_of_header == -1:
+            raise InvalidCard("header is not terminated, expected '}'")
+        header = string[1:end_of_header]
+        header_values = header.split(',')
+        # header_values should be a list of four integers
+        if not len(header_values) == 4:
+            raise InvalidCard("wrong number of header items")
+        try:
+            header_values = map(int, header_values)
+        except ValueError:
+            raise InvalidCard("header items must be integers")
+        # width and height must be > 0
+        if not header_values[2] > 0:
+            raise InvalidCard("width must be > 0")
+        if not header_values[3] > 0:
+            raise InvalidCard("height must be > 0")
+        # copy values
+        self._x = header_values[0]
+        self._y = header_values[1]
+        self._w = header_values[2]
+        self._h = header_values[3]
+        self._text = string[end_of_header+1:]
 
 class Edge:
     pass
