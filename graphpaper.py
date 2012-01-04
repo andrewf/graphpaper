@@ -118,8 +118,12 @@ class GPViewport(Frame):
         # set scroll region to bounding box of all card rects
         # with, say, 20 px margin
         box = self.canvas.bbox(ALL)
-        #print "bbox: ", box
-        self.canvas["scrollregion"] = box
+        offset = 20
+        self.canvas["scrollregion"] = (
+            box[0] - offset,
+            box[1] - offset,
+            box[2] + offset,
+            box[3] + offset)
     def utility_frame(self):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)
