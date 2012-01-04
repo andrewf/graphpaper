@@ -15,12 +15,15 @@ class ViewportCard(object):
         self.canvas = viewport.canvas
         self.draw()
         self.moving = False
+        self.editing = False
     def draw(self):
         self.window = Text(self.canvas)
         self.window.bind("<Button-1>", self.mousedown)
         self.window.bind("<Shift-Button-1>", self.shiftmousedown)
         self.window.bind("<B1-Motion>", self.mousemove)
         self.window.bind("<ButtonRelease-1>", self.mouseup)
+        self.window.bind("<FocusIn>", self.focusin)
+        self.window.bind("<FocusOut>", self.focusout)
         self.window.insert(END, self.card.text)
         self.itemid = self.canvas.create_window(
             self.card.x,
@@ -31,6 +34,14 @@ class ViewportCard(object):
             height = self.card.h,
             tags = 'card'
         )
+    def save_text(self):
+        # get text from window
+        text = self.window.get('0.0', END)
+        if text != self.card.text:
+            print 'new card text: "%s"' % text
+            self.card.text = text
+        else:
+            print 'card unchanged'
     def mousedown(self, event):
         self.window.lift()
     def shiftmousedown(self, event):
@@ -50,6 +61,12 @@ class ViewportCard(object):
         if self.moving:
             self.moving = False
             #print "new coords", self.canvas.coords(self.itemid)
+    def focusin(self, event):
+        print "focusing text"
+        self.editing = True
+    def focusout(self, event):
+        self.editing = False
+        self.save_text()
  
 
 class GPViewport(Frame):
@@ -158,6 +175,7 @@ root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
 root.title("GraphPaper")
 root["bg"] = "green"
+root.protocol("WM_DESTROY_WINDOW", save_cards)
 
 root.mainloop()
 

@@ -49,6 +49,22 @@ class DataStore(object):
         # ignore theoretical collision possibility ^^^
         self.conn.commit()
         return new_hash
+    def modify_card(self, old_hash, data):
+        '''
+        Input hash of old card to change and new data, get a hash
+        of the new data, after it's sitting in the db. Returns None on error.
+        '''
+        # remember, we can rollback on sqlite any time
+        # make sure old card exists
+        if not self.conn.execute("select * from cards where key = ?", (old_hash,)).fetchone():
+            print "old hash %s not found!!! aborting save" % old_hash
+            return None
+        # add new card
+        new_hash = sha1(data)
+        self.conn.execute("insert into cards (key, value) values (?, ?)", (new_hash, data))
+        self.conn.execute("delete from cards where key = ?", (old_hash,))
+        self.conn.commit()
+        return new_hash
 
 
 class InvalidCard(Exception):
@@ -103,7 +119,7 @@ class Card(object):
     def save(self):
         # write self in standard format
         # send command to datastore
-        pass
+        self.hash = self.datastore.modify_card(self.hash, str(self))
     def set_pos(self, x, y):
         self._x = x
         self._y = y
