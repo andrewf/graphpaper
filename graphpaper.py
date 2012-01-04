@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
+import sys
+
 from Tkinter import *
 import tkMessageBox
+
 import model
 
 class ViewportCard(object):
@@ -127,6 +130,8 @@ class GPViewport(Frame):
         # set scroll region to bounding box of all card rects
         # with, say, 20 px margin
         box = self.canvas.bbox(ALL)
+        if not box:
+            return # no objects, we'll have to set scrollregion later
         offset = 20
         self.canvas["scrollregion"] = (
             box[0] - offset,
@@ -162,6 +167,7 @@ class GPViewport(Frame):
         new_x = self.canvas.canvasx(event.x) - default_w/2
         new_y = self.canvas.canvasy(event.y) - default_h/2
         self.new_card(new_x, new_y, default_w, default_h)
+        self.reset_scroll_region()
     def mousedown(self, event):
         # take focus
         self.canvas.focus_set()
@@ -185,10 +191,19 @@ class GPViewport(Frame):
         self.data.config["viewport_w"] = event.width - 2
         self.data.config["viewport_h"] = event.height - 2
 
-root = Tk()
-app = GPViewport(root, model.DataStore("test.sqlite"));
-root.title("GraphPaper")
-root["bg"] = "green"
+if __name__ == '__main__':
+    # get optional cmdline file arg
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        load_sample_data = False
+    else:
+        filename = "test.sqlite"
+        load_sample_data = True
+    # load app
+    root = Tk()
+    app = GPViewport(root, model.DataStore(filename, load_sample_data));
+    root.title("GraphPaper")
+    root["bg"] = "green"
 
-root.mainloop()
+    root.mainloop()
 

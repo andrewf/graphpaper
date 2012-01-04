@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+from os import path
 
 def sha1(dat):
     hasher = hashlib.sha1()
@@ -27,10 +28,23 @@ class DataStore(object):
     Construct with a filename. Creates the file if it doesn't exist
     Also includes config
     '''
-    def __init__(self, filename):
+    def __init__(self, filename, load_sample_data=False):
+        '''
+        Initialize the data store. If the file doesn't exist, adds the
+        infrastructure, and optionally the sample data.
+        '''
+        # if the file exists, don't load_sample_data
+        if path.exists(filename):
+            load_sample_data = False
+            load_schema = False
+        else:
+            load_schema = True
         # filename goes to sqlite
         self.conn = sqlite3.connect(filename)
         self.config = ConfigDict(self.conn)
+        # now load sample data
+        if load_schema: self.load_schema()
+        if load_sample_data: self.load_sample_data()
         # load cards into self.cards
         self.cards = []
         for hsh, data in self.conn.execute("select * from cards"):
@@ -72,6 +86,21 @@ class DataStore(object):
             return
         self.conn.execute("delete from cards where key = ?", (card_hash,))
         self.conn.commit()
+    def load_schema(self):
+        # load it from schema.sql in this dir
+        self.conn.executescript(open("schema.sql").read())
+        # these have to be there if the file didn't exist
+        self.config['viewport_x'] = 0
+        self.config['viewport_y'] = 0
+        self.config['viewport_w'] = 600
+        self.config['viewport_h'] = 400
+    def load_sample_data(self):
+        for datum in [
+            "{-100,-50,200,100}Foobar baz\n\nGrup grup jubyr fret yup.\nfkakeander f.",
+            "{10,20,150,300}I'm a card with one line",
+            "{200,200,150,100}No edges yet\n\nedges are too hard still. We'll do them later"
+        ]:
+            self.create_card(datum)
 
 
 class InvalidCard(Exception):
