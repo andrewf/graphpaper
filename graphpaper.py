@@ -60,7 +60,8 @@ class ViewportCard(object):
     def mouseup(self, event):
         if self.moving:
             self.moving = False
-            #print "new coords", self.canvas.coords(self.itemid)
+            new_coords = map(int, self.canvas.coords(self.itemid))
+            self.card.set_pos(new_coords[0], new_coords[1])
     def focusin(self, event):
         print "focusing text"
         self.editing = True
@@ -175,7 +176,6 @@ root = Tk()
 app = GPViewport(root, model.DataStore("test.sqlite"));
 root.title("GraphPaper")
 root["bg"] = "green"
-root.protocol("WM_DESTROY_WINDOW", save_cards)
 
 root.mainloop()
 
