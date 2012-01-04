@@ -65,6 +65,13 @@ class DataStore(object):
         self.conn.execute("delete from cards where key = ?", (old_hash,))
         self.conn.commit()
         return new_hash
+    def delete_card(self, card_hash):
+        # check card exists:
+        if not self.conn.execute("select * from cards where key = ?", (card_hash,)):
+            print "trying to delete non-existent card!"
+            return
+        self.conn.execute("delete from cards where key = ?", (card_hash,))
+        self.conn.commit()
 
 
 class InvalidCard(Exception):
@@ -184,6 +191,8 @@ class Card(object):
         self._w = header_values[2]
         self._h = header_values[3]
         self._text = string[end_of_header+1:]
+    def delete(self):
+        self.datastore.delete_card(self.hash)
 
 class Edge:
     pass

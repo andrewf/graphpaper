@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from Tkinter import *
+import tkMessageBox
 import model
 
 class ViewportCard(object):
@@ -24,6 +25,7 @@ class ViewportCard(object):
         self.window.bind("<ButtonRelease-1>", self.mouseup)
         self.window.bind("<FocusIn>", self.focusin)
         self.window.bind("<FocusOut>", self.focusout)
+        self.window.bind("<Control-Delete>", self.ctrldelete)
         self.window.insert(END, self.card.text)
         self.itemid = self.canvas.create_window(
             self.card.x,
@@ -68,6 +70,13 @@ class ViewportCard(object):
     def focusout(self, event):
         self.editing = False
         self.save_text()
+    def ctrldelete(self, event):
+        # delete the card
+        if tkMessageBox.askokcancel("Delete?", "Delete card?"):
+            # delete card, item, window
+            self.card.delete()
+            self.canvas.delete(self.itemid)
+            self.window.destroy()
  
 
 class GPViewport(Frame):
