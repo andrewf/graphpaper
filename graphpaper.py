@@ -202,24 +202,6 @@ class GPViewport(Frame):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)
         self.util.pack(fill="y", side=LEFT)
-        def scroll_to_top():
-            self.canvas.xview(MOVETO, 0)
-            self.canvas.yview(MOVETO, 0)
-        button = Button(self.util, text="scroll", command=scroll_to_top)
-        button.pack()
-        def move_card():
-            card = self.cards[0]
-            self.canvas.move(card.itemid, 30, 30)
-            self.reset_scroll_region()
-        button = Button(self.util, text="moveit", command=move_card)
-        button.pack()
-        def resize_card():
-            card = self.cards[0]
-            card.card.w += 10
-            card.card.h += 10
-            self.canvas.itemconfig(card.itemid, width=card.card.w, height=card.card.h)
-        Button(self.util, text="resize", command=resize_card).pack()
-
     def new_card(self, x, y, w, h):
         self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))
     def save_scroll_pos(self):
