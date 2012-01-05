@@ -49,9 +49,12 @@ class ViewportCard(object):
             height = self.card.h,
             tags = 'card'
         )
+    def get_text(self):
+        "gets the text from the actual editor, which may not be saved yet"
+        return self.text.get('0.0', END)
     def save_text(self):
         # get text from window
-        text = self.text.get('0.0', END)
+        text = self.get_text()
         if text != self.card.text:
             print 'new card text: "%s"' % text
             self.card.text = text
@@ -88,12 +91,16 @@ class ViewportCard(object):
         self.editing = False
         self.save_text()
     def ctrldelete(self, event):
+        title_sample = self.get_text().split('\n', 1)[0]
+        if len(title_sample) > 20:
+            title_sample = title_sample[:20] + '...'
         # delete the card
-        if tkMessageBox.askokcancel("Delete?", "Delete card?"):
+        if tkMessageBox.askokcancel("Delete?", "Delete card \"%s\"?" % title_sample):
             # delete card, item, window
             self.card.delete()
             self.canvas.delete(self.itemid)
             self.window.destroy()
+        return "break"
     def frame_mousedown(self, event):
         # store initial coords and which edges are 
         self.resize_state = {
