@@ -75,6 +75,10 @@ class DataStore(object):
             return None
         # add new card
         new_hash = sha1(data)
+        # no-op if data is the same: don't want to delete it
+        if new_hash == old_hash:
+            return old_hash
+        # no going back
         self.conn.execute("insert into cards (key, value) values (?, ?)", (new_hash, data))
         self.conn.execute("delete from cards where key = ?", (old_hash,))
         self.conn.commit()

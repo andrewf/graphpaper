@@ -3,7 +3,7 @@ create table if not exists config (
     value text
 );
 create table if not exists cards (
-    key text unique not null primary key,
+    key text constraint unique_key unique on conflict replace not null primary key,
     value text
 );
 
