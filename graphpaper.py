@@ -23,7 +23,7 @@ class ViewportCard(object):
         self.resize_state = None
     def draw(self):
         self.frame_thickness = 5
-        self.window = Frame(self.canvas, borderwidth=self.frame_thickness, cursor='cross')
+        self.window = Frame(self.canvas, borderwidth=self.frame_thickness, cursor='fleur')
         self.text = Text(self.window)
         self.text.pack(expand=1, fill='both')
         # set up text for editing, dragging, deleting
