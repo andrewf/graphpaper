@@ -203,7 +203,9 @@ class GPViewport(Frame):
         self.util = Frame(self, width = 100)
         self.util.pack(fill="y", side=LEFT)
     def new_card(self, x, y, w, h):
-        self.cards.append(ViewportCard(self, self.data.new_card(x, y, w, h)))
+        newcard = ViewportCard(self, self.data.new_card(x, y, w, h))
+        self.cards.append(newcard)
+        return newcard
     def save_scroll_pos(self):
         # save current scrolling position to config
         new_x = (self.canvas.canvasx(0))
@@ -211,11 +213,13 @@ class GPViewport(Frame):
         self.data.config["viewport_x"] = new_x
         self.data.config["viewport_y"] = new_y
     def ctrlclick(self, event):
+        '''Create a new card on the canvas and focus it'''
         default_w = 200
         default_h = 150
         new_x = self.canvas.canvasx(event.x) - default_w/2
         new_y = self.canvas.canvasy(event.y) - default_h/2
-        self.new_card(new_x, new_y, default_w, default_h)
+        newcard = self.new_card(new_x, new_y, default_w, default_h)
+        newcard.text.focus_set()
         self.reset_scroll_region()
     def mousedown(self, event):
         # take focus
