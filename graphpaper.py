@@ -216,8 +216,8 @@ class GPViewport(Frame):
         self.data.config["viewport_y"] = new_y
     def ctrlclick(self, event):
         '''Create a new card on the canvas and focus it'''
-        default_w = 200
-        default_h = 150
+        default_w = int(self.data.config["default_card_w"] or 200)
+        default_h = int(self.data.config["default_card_h"] or 150)
         new_x = self.canvas.canvasx(event.x) - default_w/2
         new_y = self.canvas.canvasy(event.y) - default_h/2
         newcard = self.new_card(new_x, new_y, default_w, default_h)
