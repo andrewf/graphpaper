@@ -65,6 +65,7 @@ class ViewportCard(object):
         self.mousedown(event)
         self.moving = True
         self.foocoords = (event.x, event.y)
+        return "break"
     def mousemove(self, event):
         if self.moving:
             # coords are relative to card, not canvas
@@ -74,6 +75,7 @@ class ViewportCard(object):
                 delta = (event.x, event.y)
             self.canvas.move(self.itemid, delta[0], delta[1])
             self.viewport.reset_scroll_region()
+            return "break"
     def mouseup(self, event):
         if self.moving:
             self.moving = False
