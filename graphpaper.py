@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 import sys
+import os
 
 from Tkinter import *
 import tkMessageBox
+import tkFileDialog
 
 import model
 
@@ -253,6 +255,18 @@ class GPViewport(Frame):
         self.data.config["viewport_w"] = event.width - 2
         self.data.config["viewport_h"] = event.height - 2
 
+def openfile(filename):
+    # start new process
+    print 'opening "%s"' % filename
+    #os.spawnlp(os.P_NOWAIT, sys.argv[0], filename) broken!
+
+def choosefile(*args):
+    # *args lets it be both an event binding and menu command
+    filename = tkFileDialog.askopenfilename()
+    if filename:
+        openfile(filename)
+    
+
 if __name__ == '__main__':
     # get optional cmdline file arg
     if len(sys.argv) > 1:
@@ -263,9 +277,26 @@ if __name__ == '__main__':
         load_sample_data = True
     # load app
     root = Tk()
+    # create menus:
+    # File:
+    #   Open
+    # Edit:
+    #   Default Card Size (disabled)
+    rootmenu = Menu(root)
+    # file menu
+    filemenu = Menu(rootmenu, tearoff=0)
+    rootmenu.add_cascade(menu=filemenu, label='File')
+    filemenu.add_command(label="Open (or create)", command = choosefile)
+    # edit menu
+    editmenu = Menu(rootmenu, tearoff=0)
+    rootmenu.add_cascade(menu=editmenu, label='Edit')
+    editmenu.add_command(label="Default Card Size", state='disabled')
+    root.config(menu=rootmenu)
+    # load command-line file
     app = GPViewport(root, model.DataStore(filename, load_sample_data));
     root.title("GraphPaper")
     root["bg"] = "green"
+    root.bind("<Control-o>", choosefile)
 
     root.mainloop()
 
