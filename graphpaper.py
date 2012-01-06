@@ -58,10 +58,10 @@ class ViewportCard(object):
         # get text from window
         text = self.get_text()
         if text != self.card.text:
-            print 'new card text: "%s"' % text
+            #print 'new card text: "%s"' % text
             self.card.text = text
-        else:
-            print 'card unchanged'
+        #else:
+            #print 'card unchanged'
     def canvas_coords(self):
         return map(int, self.canvas.coords(self.itemid))
     def mousedown(self, event):
@@ -87,7 +87,7 @@ class ViewportCard(object):
             new_coords = self.canvas_coords()
             self.card.set_pos(new_coords[0], new_coords[1])
     def focusin(self, event):
-        print "focusing text"
+        #print "focusing text"
         self.editing = True
     def focusout(self, event):
         self.editing = False
@@ -147,9 +147,8 @@ class ViewportCard(object):
             self.card._x, self.card._y = self.canvas_coords()
             self.card._w = int(self.canvas.itemcget(self.itemid, 'width'))
             self.card._h = int(self.canvas.itemcget(self.itemid, 'height'))
-            print 'saving:', self.card.x, self.card.y, self.card.w, self.card.h
+            #print 'saving:', self.card.x, self.card.y, self.card.w, self.card.h
             self.card.save()
-            print 'deleting resize state'
             self.resize_state = None
  
 
