@@ -168,7 +168,7 @@ class GPViewport(Frame):
         self.xscroll.pack(side="bottom", fill="x")
         # create canvas
         self.canvas = Canvas(self,
-            bg = "white",
+            bg = "lavender",
             width = self.width,
             height = self.height,
             xscrollincrement = 1,
