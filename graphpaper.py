@@ -255,48 +255,72 @@ class GPViewport(Frame):
         self.data.config["viewport_w"] = event.width - 2
         self.data.config["viewport_h"] = event.height - 2
 
-def openfile(filename):
-    # start new process
-    print 'opening "%s"' % filename
-    #os.spawnlp(os.P_NOWAIT, sys.argv[0], filename) broken!
+class GPApp(object):
+    def __init__(self, filename):
+        self.root = Tk()
+        self.root["bg"] = "green"
+        self.root.title("GraphPaper!")
+        self.viewport = None
+        self.openfile(filename)
+        # create menus:
+        # File:
+        #   Open
+        # Edit:
+        #   Default Card Size (disabled)
+        rootmenu = Menu(self.root)
+        # file menu
+        filemenu = Menu(rootmenu, tearoff=0)
+        rootmenu.add_cascade(menu=filemenu, label='File')
+        filemenu.add_command(label="Open", command = self.choosefile)
+        filemenu.add_command(label="Create", command = self.newfile)
+        # edit menu
+        editmenu = Menu(rootmenu, tearoff=0)
+        rootmenu.add_cascade(menu=editmenu, label='Edit')
+        editmenu.add_command(label="Default Card Size", state='disabled')
+        self.root.config(menu=rootmenu)
+        # settings for tkFileDialog
+        self.file_dialog_settings = dict(
+            defaultextension = '.gp',
+            filetypes = (('GraphPaper files', '.gp'), ('sqlite files', '.sqlite')),
+            title = 'GraphPaper'
+        )
+        # set ctrl-o to open, ctrl-n to new
+        self.root.bind('<Control-o>', self.choosefile)
+        self.root.bind('<Control-n>', self.newfile)
 
-def choosefile(*args):
-    # *args lets it be both an event binding and menu command
-    filename = tkFileDialog.askopenfilename()
-    if filename:
-        openfile(filename)
+    def mainloop(self):
+        self.root.mainloop()
+
+    def openfile(self, filename):
+        # creates new GPViewport
+        # loads sample data if filename is None
+        print 'opening "%s"' % filename
+        filename = filename or 'test.sqlite'
+        load_sample_data = filename is None
+        if self.viewport:
+            self.viewport.destroy() # better hope that last card is saved
+        self.viewport = GPViewport(self.root, model.DataStore(filename, load_sample_data))
+        self.root.title('GraphPaper - %s' % filename)
+
+    def newfile(self, *args):
+        # *args lets it be both an event binding and menu command
+        filename = tkFileDialog.asksaveasfilename(**self.file_dialog_settings)
+        if filename:
+            self.openfile(filename)
+    
+    def choosefile(self, *args):
+        filename = tkFileDialog.askopenfilename(**self.file_dialog_settings)
+        if filename:
+            self.openfile(filename)
     
 
 if __name__ == '__main__':
     # get optional cmdline file arg
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-        load_sample_data = False
     else:
-        filename = "test.sqlite"
-        load_sample_data = True
+        filename = None 
     # load app
-    root = Tk()
-    # create menus:
-    # File:
-    #   Open
-    # Edit:
-    #   Default Card Size (disabled)
-    rootmenu = Menu(root)
-    # file menu
-    filemenu = Menu(rootmenu, tearoff=0)
-    rootmenu.add_cascade(menu=filemenu, label='File')
-    filemenu.add_command(label="Open (or create)", command = choosefile)
-    # edit menu
-    editmenu = Menu(rootmenu, tearoff=0)
-    rootmenu.add_cascade(menu=editmenu, label='Edit')
-    editmenu.add_command(label="Default Card Size", state='disabled')
-    root.config(menu=rootmenu)
-    # load command-line file
-    app = GPViewport(root, model.DataStore(filename, load_sample_data));
-    root.title("GraphPaper")
-    root["bg"] = "green"
-    root.bind("<Control-o>", choosefile)
-
-    root.mainloop()
+    app = GPApp(filename)
+    app.mainloop()
 
