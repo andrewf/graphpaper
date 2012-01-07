@@ -267,7 +267,7 @@ class GPApp(object):
         self.root["bg"] = "green"
         self.root.title("GraphPaper!")
         self.viewport = None
-        self.default_filename = 'test.sqlite'
+        self.default_filename = 'instructions.gp'
         self.openfile(filename)
         # create menus:
         # File:
