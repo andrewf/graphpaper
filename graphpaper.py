@@ -70,10 +70,8 @@ class ViewportCard(object):
         self.moving = True
         self.foocoords = (event.x, event.y)
     def mousedown(self, event):
-        print 'card mousedown'
         self.window.lift()
     def doubleclick(self, event):
-        print 'card dbl-click'
         self.start_moving(event)
         return 'break'
     def shiftmousedown(self, event):
@@ -91,7 +89,6 @@ class ViewportCard(object):
             self.viewport.reset_scroll_region()
             return "break"
     def mouseup(self, event):
-        print 'card mouseup'
         if self.moving:
             self.moving = False
             new_coords = self.canvas_coords()
@@ -189,7 +186,7 @@ class GPViewport(Frame):
         # bind events
         self.canvas.bind("<Button-1>", self.mousedown)
         self.canvas.bind("<ButtonRelease-1>", self.mouseup)
-        self.canvas.bind("<Control-Button-1>", self.ctrlclick)
+        self.canvas.bind("<Double-Button-1>", self.doubleclick)
         self.canvas.bind("<B1-Motion>", self.mousemove)
         self.canvas.bind("<Key>", self.keydown)
         self.canvas.bind("<Configure>", self.resize)
@@ -232,7 +229,7 @@ class GPViewport(Frame):
         new_y = (self.canvas.canvasy(0))
         self.data.config["viewport_x"] = new_x
         self.data.config["viewport_y"] = new_y
-    def ctrlclick(self, event):
+    def doubleclick(self, event):
         '''Create a new card on the canvas and focus it'''
         default_w = int(self.data.config["default_card_w"] or 200)
         default_h = int(self.data.config["default_card_h"] or 150)
