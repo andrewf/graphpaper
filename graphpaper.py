@@ -260,6 +260,7 @@ class GPApp(object):
         self.root["bg"] = "green"
         self.root.title("GraphPaper!")
         self.viewport = None
+        self.default_filename = 'test.sqlite'
         self.openfile(filename)
         # create menus:
         # File:
@@ -294,8 +295,8 @@ class GPApp(object):
         # creates new GPViewport
         # loads sample data if filename is None
         print 'opening "%s"' % filename
-        filename = filename or 'test.sqlite'
         load_sample_data = filename is None
+        filename = filename or self.default_filename
         if self.viewport:
             self.viewport.destroy() # better hope that last card is saved
         self.viewport = GPViewport(self.root, model.DataStore(filename, load_sample_data))
