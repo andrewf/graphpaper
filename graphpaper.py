@@ -31,6 +31,7 @@ class ViewportCard(object):
         # set up text for editing, dragging, deleting
         self.text.bind("<Button-1>", self.mousedown)
         self.text.bind("<Shift-Button-1>", self.shiftmousedown)
+        self.text.bind("<Double-Button-1>", self.doubleclick)
         self.text.bind("<B1-Motion>", self.mousemove)
         self.text.bind("<ButtonRelease-1>", self.mouseup)
         self.text.bind("<FocusIn>", self.focusin)
@@ -64,12 +65,20 @@ class ViewportCard(object):
             #print 'card unchanged'
     def canvas_coords(self):
         return map(int, self.canvas.coords(self.itemid))
-    def mousedown(self, event):
-        self.window.lift()
-    def shiftmousedown(self, event):
-        self.mousedown(event)
+    def start_moving(self, event):
+        # set up state for a drag
         self.moving = True
         self.foocoords = (event.x, event.y)
+    def mousedown(self, event):
+        print 'card mousedown'
+        self.window.lift()
+    def doubleclick(self, event):
+        print 'card dbl-click'
+        self.start_moving(event)
+        return 'break'
+    def shiftmousedown(self, event):
+        self.mousedown(event)
+        self.start_moving(event)
         return "break"
     def mousemove(self, event):
         if self.moving:
@@ -82,6 +91,7 @@ class ViewportCard(object):
             self.viewport.reset_scroll_region()
             return "break"
     def mouseup(self, event):
+        print 'card mouseup'
         if self.moving:
             self.moving = False
             new_coords = self.canvas_coords()
