@@ -21,8 +21,10 @@ class ViewportCard(object):
         self.canvas = viewport.canvas
         self.draw()
         self.moving = False
+        self.moving_edgescroll_id = None
         self.editing = False
         self.resize_state = None
+        self.resize_edgescroll_id = None
     def draw(self):
         self.frame_thickness = 5
         self.window = Frame(self.canvas, borderwidth=self.frame_thickness, cursor='fleur')
@@ -65,10 +67,28 @@ class ViewportCard(object):
             #print 'card unchanged'
     def canvas_coords(self):
         return map(int, self.canvas.coords(self.itemid))
+
     def start_moving(self, event):
         # set up state for a drag
         self.moving = True
         self.foocoords = (event.x, event.y)
+        self.set_moving_edgescroll_callback()
+
+    def edge_scroll(self):
+        # if any edges are too close to the edge, move and scroll the canvas
+        x0, y0 = self.canvas.canvasx(0), self.canvas.canvasy(0)
+        canvas_coords = self.canvas_coords()
+        window_x = canvas_coords[0] - x0
+        window_y = canvas_coords[1] - y0
+        print 'screen coords of card:', window_x, window_y
+        self.set_moving_edgescroll_callback()
+
+    def set_moving_edgescroll_callback(self):
+        self.moving_edgescroll_id = self.text.after(700, self.edge_scroll)
+    def cancel_moving_edgescroll_callback(self):
+        self.text.after_cancel(self.moving_edgescroll_id)
+        self.moving_edgescroll_id = None
+
     def mousedown(self, event):
         self.window.lift()
     def doubleclick(self, event):
@@ -93,6 +113,7 @@ class ViewportCard(object):
             self.moving = False
             new_coords = self.canvas_coords()
             self.card.set_pos(new_coords[0], new_coords[1])
+            self.cancel_moving_edgescroll_callback()
     def focusin(self, event):
         #print "focusing text"
         self.editing = True
