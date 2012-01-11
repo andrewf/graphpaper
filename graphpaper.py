@@ -20,9 +20,9 @@ class ViewportCard(object):
         self.viewport = viewport
         self.canvas = viewport.canvas
         self.draw()
+        self.editing = False
         self.moving = False
         self.moving_edgescroll_id = None
-        self.editing = False
         self.resize_state = None
         self.resize_edgescroll_id = None
     def draw(self):
@@ -76,15 +76,17 @@ class ViewportCard(object):
 
     def edge_scroll(self):
         # if any edges are too close to the edge, move and scroll the canvas
-        x0, y0 = self.canvas.canvasx(0), self.canvas.canvasy(0)
         canvas_coords = self.canvas_coords()
-        window_x = canvas_coords[0] - x0
-        window_y = canvas_coords[1] - y0
-        print 'screen coords of card:', window_x, window_y
+        relative_mouse_pos = self.foocoords
+        canvas_mouse_coords = (
+            canvas_coords[0] + relative_mouse_pos[0] + self.frame_thickness,
+            canvas_coords[1] + relative_mouse_pos[1] + self.frame_thickness
+        )
+        self.viewport.edge_scroll(canvas_mouse_coords)
         self.set_moving_edgescroll_callback()
 
     def set_moving_edgescroll_callback(self):
-        self.moving_edgescroll_id = self.text.after(700, self.edge_scroll)
+        self.moving_edgescroll_id = self.text.after(10, self.edge_scroll)
     def cancel_moving_edgescroll_callback(self):
         self.text.after_cancel(self.moving_edgescroll_id)
         self.moving_edgescroll_id = None
@@ -250,6 +252,44 @@ class GPViewport(Frame):
         new_y = (self.canvas.canvasy(0))
         self.data.config["viewport_x"] = new_x
         self.data.config["viewport_y"] = new_y
+    def edge_scroll(self, canvas_mouse_coords):
+        '''
+        Given a mouse position in canvas coordinates, scroll a little bit and
+        return the distance scrolled. Scrolling happens if the cursor is in
+        a band of space around the outer edges.
+        '''
+        region_size = 70
+        window_width = self.canvas.winfo_width()
+        window_height = self.canvas.winfo_height()
+        x0, y0 = self.canvas.canvasx(0), self.canvas.canvasy(0)
+        # get mouse pos in the visible
+        window_coords = (canvas_mouse_coords[0] - x0,
+                         canvas_mouse_coords[1] - y0)
+        # x scroll
+        if window_coords[0] <= region_size:
+            # scroll is negative when on top/left
+            scroll_x = window_coords[0] - region_size
+        elif (window_width - region_size) <= window_coords[0]:
+            scroll_x = region_size - (window_width - window_coords[0])
+        else:
+            scroll_x = 0
+        # y scroll
+        if window_coords[1] <= region_size:
+            # scroll is negative when on top/left
+            scroll_y = window_coords[1] - region_size
+        elif (window_height - region_size) <= window_coords[1]:
+            scroll_y = region_size - (window_height - window_coords[1])
+        else:
+            scroll_y = 0
+        # scale the movements
+        scale_factor = 0.5
+        scroll_x *= scale_factor
+        scroll_y *= scale_factor
+        # move and return
+        self.canvas.xview_scroll(int(scroll_x), UNITS)
+        self.canvas.yview_scroll(int(scroll_y), UNITS)
+        print 'window_coords', window_coords, 'edge scroll', scroll_x, scroll_y
+        return scroll_x, scroll_y
     def doubleclick(self, event):
         '''Create a new card on the canvas and focus it'''
         default_w = int(self.data.config["default_card_w"] or 200)
