@@ -82,7 +82,12 @@ class ViewportCard(object):
             canvas_coords[0] + relative_mouse_pos[0] + self.frame_thickness,
             canvas_coords[1] + relative_mouse_pos[1] + self.frame_thickness
         )
-        self.viewport.edge_scroll(canvas_mouse_coords)
+        scroll_x, scroll_y = self.viewport.edge_scroll(canvas_mouse_coords)
+        # move the opposite direction the viewport scrolled
+        scroll_x, scroll_y = -scroll_x, -scroll_y
+        #print 'card.edgescroll x y', scroll_x, scroll_y, 'relative_mouse_pos', relative_mouse_pos
+        self.canvas.move(self.itemid, scroll_x, scroll_y)
+        self.viewport.reset_scroll_region()
         self.set_moving_edgescroll_callback()
 
     def set_moving_edgescroll_callback(self):
@@ -288,7 +293,7 @@ class GPViewport(Frame):
         # move and return
         self.canvas.xview_scroll(int(scroll_x), UNITS)
         self.canvas.yview_scroll(int(scroll_y), UNITS)
-        print 'window_coords', window_coords, 'edge scroll', scroll_x, scroll_y
+        #print 'canvas_mouse_coords', canvas_mouse_coords, 'window_coords', window_coords, 'edge scroll', scroll_x, scroll_y
         return scroll_x, scroll_y
     def doubleclick(self, event):
         '''Create a new card on the canvas and focus it'''
