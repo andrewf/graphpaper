@@ -4,6 +4,7 @@ import sys
 import os
 
 from Tkinter import *
+from ScrolledText import ScrolledText
 import tkMessageBox
 import tkFileDialog
 
@@ -28,7 +29,7 @@ class ViewportCard(object):
     def draw(self):
         self.frame_thickness = 5
         self.window = Frame(self.canvas, borderwidth=self.frame_thickness, cursor='fleur')
-        self.text = Text(self.window, wrap=WORD)
+        self.text = ScrolledText(self.window, wrap=WORD)
         self.text.pack(expand=1, fill='both')
         # set up text for editing, dragging, deleting
         self.text.bind("<Button-1>", self.mousedown)
