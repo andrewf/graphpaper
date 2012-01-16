@@ -4,7 +4,6 @@ import sys
 import os
 
 from Tkinter import *
-import tkMessageBox
 import tkFileDialog
 
 import model
