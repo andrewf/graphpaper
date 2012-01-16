@@ -1,6 +1,9 @@
 import sqlite3
 import hashlib
+import re
 from os import path
+
+import minijson
 
 def sha1(dat):
     hasher = hashlib.sha1()
@@ -189,41 +192,45 @@ class Card(object):
     h = property(get_h, set_h)
     text = property(get_text, set_text)
     def __str__(self):
-        return '{%d,%d,%d,%d}%s' % (
-            self._x,
-            self._y,
-            self._w,
-            self._h,
-            self.text
-        )
+        return minijson.encode({
+            'objtype': 'card',
+            'x': int(self._x),
+            'y': int(self._y),
+            'w': int(self._w),
+            'h': int(self._h),
+            'text': self._text,
+        })
+
     def unpack(self, string):
-        # unpacks self from format created in above string
-        # raises InvalidCard if data is bad
-        if string[0] != '{':
-            raise InvalidCard("expected '{' at beginning")
-        end_of_header = string.find('}')
-        if end_of_header == -1:
-            raise InvalidCard("header is not terminated, expected '}'")
-        header = string[1:end_of_header]
-        header_values = header.split(',')
-        # header_values should be a list of four integers
-        if not len(header_values) == 4:
-            raise InvalidCard("wrong number of header items")
-        try:
-            header_values = map(int, header_values)
-        except ValueError:
-            raise InvalidCard("header items must be integers")
-        # width and height must be > 0
-        if not header_values[2] > 0:
-            raise InvalidCard("width must be > 0")
-        if not header_values[3] > 0:
-            raise InvalidCard("height must be > 0")
-        # copy values
-        self._x = header_values[0]
-        self._y = header_values[1]
-        self._w = header_values[2]
-        self._h = header_values[3]
-        self._text = string[end_of_header+1:]
+        old_regex = re.compile(
+            r'''{(?P<x>-?\d+),(?P<y>-?\d+),(?P<w>-?\d+),(?P<h>-?\d+)}(?P<text>.*)'''
+        )
+        match = old_regex.match(string)
+        if match:
+            # this is an old-format card
+            self._x = int(match.group('x'))
+            self._y = int(match.group('y'))
+            self._w = int(match.group('w'))
+            self._h = int(match.group('h'))
+            self._text = match.group('text')
+        else:
+            try:
+                data = minijson.decode(string)
+                self._x = data['x']
+                self._y = data['y']
+                self._w = data['w']
+                self._h = data['h']
+                self._text = data['text']
+            except ValueError:
+                raise InvalidCard("Could not parse card at all!")
+            except KeyError:
+                raise InvalidCard("Card data did not contain all required fields!")
+        # make sure w and h are valid
+        if self._w <= 0:
+            raise InvalidCard('Card width must be > 0!')
+        if self._h <= 0:
+            raise InvalidCard('Card height must be > 0!')
+
     def delete(self):
         self.datastore.delete_card(self.hash)
 
