@@ -43,8 +43,49 @@ class ViewportCard(object):
         self.text.bind("<Control-Delete>", self.ctrldelete)
         self.text.insert(END, self.card.text)
         # set up frame for resizing
-        #self.window.bind('<Configure>', self.configure)
+        self.window.bind('<Configure>', self.configure)
         self.window.save_callback = self.save_card
+        # draw edge handles
+        self.edge_handles = None
+        #self.redraw_edge_handles()
+
+    def redraw_edge_handles(self):
+        '''
+        Either creates or modifies the edge handles, little circles poking
+        out the side of the card, based on the current position and width.
+
+        self.edge_handles is a list of itemids of the circles in (top,
+        right, bottom, left) order.
+        '''
+        def create_circle(bbox):
+            # create circle suitable for edge-handle use
+            return self.canvas.create_oval(
+                bbox[0], bbox[1], bbox[2], bbox[3],
+                fill='blue',
+                outline=''
+            )
+        x, y = self.window.canvas_coords()
+        w, h = self.window.winfo_width(), self.window.winfo_height()
+        radius = 40
+        offset = 30 # offset of center of circle from card edge
+        left_coords = (x + offset, y + h/2)
+        right_coords = (x + w - offset, y + h/2)
+        top_coords = (x + w/2 , y + offset)
+        bottom_coords = (x + w/2, y + h - offset)
+        all_coords = (top_coords, right_coords, bottom_coords, left_coords)
+        bboxes = [ (x-radius, y-radius, x+radius, y+radius) for x, y in all_coords]
+        if self.edge_handles:
+            # move the edge handles
+            for i, box in enumerate(bboxes):
+                #self.canvas.coords(handle, box[0], box[1], box[2], box[3])
+                self.canvas.delete(self.edge_handles[i])
+                self.edge_handles[i] = create_circle(box)
+                #self.canvas.itemconfig(handle, bbox = box)
+        else:
+            # create new ones
+            self.edge_handles = [
+                create_circle(b) for b in bboxes
+            ]
 
     def get_text(self):
         "gets the text from the actual editor, which may not be saved yet"
@@ -117,6 +158,10 @@ class ViewportCard(object):
             new_coords = self.canvas_coords()
             self.card.set_pos(new_coords[0], new_coords[1])
             self.cancel_moving_edgescroll_callback()
+
+    def configure(self, event):
+        print 'configure'
+        self.redraw_edge_handles()
 
     def focusin(self, event):
         #print "focusing text"
