@@ -177,7 +177,8 @@ class ViewportCard(object):
             title_sample = title_sample[:20] + '...'
         # delete the card
         if tkMessageBox.askokcancel("Delete?", "Delete card \"%s\"?" % title_sample):
-            # delete card, item, window
+            for handle in self.edge_handles:
+                self.canvas.delete(handle)
             self.card.delete()
             self.window.destroy()
         return "break"
