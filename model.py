@@ -203,7 +203,8 @@ class Card(object):
 
     def unpack(self, string):
         old_regex = re.compile(
-            r'''{(?P<x>-?\d+),(?P<y>-?\d+),(?P<w>-?\d+),(?P<h>-?\d+)}(?P<text>.*)'''
+            r'''{(?P<x>-?\d+),(?P<y>-?\d+),(?P<w>-?\d+),(?P<h>-?\d+)}(?P<text>.*)''',
+            flags = re.MULTILINE | re.DOTALL # must match multiple lines of text
         )
         match = old_regex.match(string)
         if match:
