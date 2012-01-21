@@ -59,11 +59,24 @@ class ViewportCard(object):
         '''
         def create_circle(bbox):
             # create circle suitable for edge-handle use
-            return self.canvas.create_oval(
+            new = self.canvas.create_oval(
                 bbox[0], bbox[1], bbox[2], bbox[3],
                 fill='blue',
                 outline=''
             )
+            def foo(event):
+                print 'handle callback'
+                return 'break'
+            def move(event):
+                print 'moving:', event.x, event.y
+                return 'break'
+            def dblclick(event):
+                print 'item double-click'
+                return 'break'
+            self.canvas.tag_bind(new, '<Button-1>', foo)
+            self.canvas.tag_bind(new, '<B1-Motion>', move)
+            self.canvas.tag_bind(new, '<Double-Button-1>', dblclick)
+            return new
         x, y = self.window.canvas_coords()
         w, h = self.window.winfo_width(), self.window.winfo_height()
         radius = 40
