@@ -309,5 +309,7 @@ class Edge(object):
 
     @property
     def delete_me(self):
-        return self._delete_me
+        # note that for this to work, both cards have to be not actually
+        # deleted yet. GC should handle this fine...
+        return self._delete_me or self._orig.delete_me or self._dest.delete_me
 

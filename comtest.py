@@ -21,18 +21,18 @@ g.commit()
 
 # make an edge
 e1 = g.new_edge(c, c2)
+e2 = g.new_edge(c3, c2)
 
 g.commit()
 
 # modify more stuff
-c.text = 'card 1, rev 2'
-e1.dest = c3
-e2 = g.new_edge(c3, c2)
+e2._delete_me = True
+c._delete_me = True
 
 last_commit = g.commit()
 
 for k,v in dat.getall():
-    print k, ':'
+    print '#', k, ':'
     print '   ', v
 
 # now load it fresh
