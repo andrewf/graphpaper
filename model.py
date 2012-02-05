@@ -6,6 +6,8 @@ import storable
 
 COMMIT_OBJTYPE = 'commit'
 CARD_OBJTYPE = 'card'
+EDGE_OBJTYPE = 'edge'
+objtype = 'objtype'
 
 MIN_CARD_SIZE = 20
 
@@ -40,15 +42,22 @@ class Graph(object):
             else:
                 # loaded successfully
                 # check validity
-                if not self.obj['objtype'] == COMMIT_OBJTYPE:
+                if not self.obj[objtype] == COMMIT_OBJTYPE:
                     raise Error('Graph found invalid commit %s' % oid)
                 # check schema?
                 # all good
-                self.oid = oid
         else:
             self.load_empty_graph()
-        # can now assume self.oid and self.obj are good
-        self.cards = [Card(self, oid) for oid in self.obj['cards']]
+        # while loading cards, build dict of oids to cards
+        # we only need this during loading phase to give to edge constructors
+        card_dict = {}
+        self.cards = []
+        for oid in self.obj['cards']:
+            c = Card(self, oid)
+            card_dict[oid] = c
+            self.cards.append(c)
+        card_mapper = lambda oid: card_dict.get(oid, None)
+        self.edges = [Edge(self, oid, card_mapper) for oid in self.obj['edges']]
 
     def get_cards(self):
         '''
@@ -65,6 +74,11 @@ class Graph(object):
         self.cards.append(c)
         return c
 
+    def new_edge(self, orig, dest):
+        e = Edge(self, orig=orig, dest=dest)
+        self.edges.append(e)
+        return e
+
     def commit(self):
         '''
         Save a new commit object
@@ -74,6 +88,7 @@ class Graph(object):
         '''
         old_id = self.obj.oid
         to_delete = []
+        # update card ids
         for card in self.cards:
             if card.delete_me:
                 to_delete.append(card)
@@ -81,13 +96,20 @@ class Graph(object):
                 card.save()
         for card in to_delete:
             self.cards.remove(card) # TODO: more efficient algo
-        #for edge in all_edges:
-        #    if edge.delete_me:
-        #        add to list
-        #    edge.regenerate() # loads new card ids,
-        #clear to_delete list
-        self.obj['cards'] = map(lambda c: c.obj.oid, self.cards)
-        #self.obj['edges'] = updated list of edge ids
+        # reuse deletion list for edges
+        to_delete = []
+        # update edge ids
+        for edge in self.edges:
+            if edge.delete_me:
+                to_delete.append(edge)
+            elif edge.dirty:
+                edge.save()
+        for edge in to_delete:
+            self.edges.remove(edge)
+        # load up new commit object
+        get_oid = lambda c: c.obj.oid
+        self.obj['cards'] = map(get_oid, self.cards)
+        self.obj['edges'] = map(get_oid, self.edges)
         self.obj['parent'] = old_id
         return self.obj.save(self.datastore)
 
@@ -95,11 +117,12 @@ class Graph(object):
         '''
         Initialize self.obj with data for an empty graph.
 
-        Make parent null, and empty list of cards
+        Make parent null, and empty lists of cards and edges
         '''
-        self.obj['objtype'] = COMMIT_OBJTYPE
+        self.obj[objtype] = COMMIT_OBJTYPE
         self.obj['parent'] = None
         self.obj['cards'] = []
+        self.obj['edges'] = []
 
 
 class Card(object):
@@ -122,7 +145,7 @@ class Card(object):
                 raise Error('Failed to find card %s' % oid)
             # validate card
             try:
-                if not self.obj['objtype'] == CARD_OBJTYPE:
+                if not self.obj[objtype] == CARD_OBJTYPE:
                     raise Error('Invalid card at %s' % oid)
             except KeyError:
                 raise Error('Alleged card has no objtype at %s' % oid)
@@ -135,7 +158,7 @@ class Card(object):
         self._delete_me = False
 
     def load_empty_card(self):
-        self.obj['objtype'] = CARD_OBJTYPE
+        self.obj[objtype] = CARD_OBJTYPE
         self.obj['text'] = ''
         self.x = 0
         self.y = 0
@@ -186,4 +209,105 @@ class Card(object):
     def dirty(self):
         return self.obj.oid is None
 
+
+class Edge(object):
+    def __init__(self, graph, oid=None, card_by_oid=None, **kwargs):
+        '''
+        Load self from datastore, or create new Edge
+
+        Must be called in one of two ways:
+         * Edge(graph, oid, id_map(oid)->model.Card), when loading from a commit
+         * Edge(graph, orig=model.Card, dest=model.Card), when creating from scratch
+
+        In the first case, the second parameter is a function mapping card oids
+        to the corresponding model.Card. Edge needs to keep track of the actual
+        Card object, and has no other way to get it from the oids in its data.
+        The function should return None if it can't find the card.
+
+        In the second case, oid is None and both keyword args must be present.
+        Someday it will accept other parameters for edge type and whatever else,
+        but for now any other kwargs will be ignored.
+        '''
+        self.graph = graph
+        self.obj = storable.Storable()
+        if oid is not None:
+            # load from kvstore
+            try:
+                self.obj.load(self.graph.datastore, oid)
+            except storable.Error:
+                raise Error('Failed to find edge %s' % oid)
+            # validate
+            # edge must have objtype == 'edge' and orig & dest in set of cards
+            try:
+                if not self.obj[objtype] == EDGE_OBJTYPE:
+                    raise Error('Alleged edge %s has wrong objtype' % oid)
+                self._orig = card_by_oid(self.obj['orig'])
+                if not self._orig:
+                    raise Error('Edge %s has invalid origin card id %s' % (oid, self.obj['orig']))
+                self._dest = card_by_oid(self.obj['dest'])
+                if not self._dest:
+                    raise Error('Edge %s has invalid dest card id %s' % (oid, self.obj['dest']))
+            except KeyError as e:
+                raise Error('Edge %s is missing required field %s' % (oid, e))
+        else:
+            # create fresh edge
+            # not much to do here. most work will be done when saving, which
+            # gets the referenced cards' ids into self.obj
+            self.obj[objtype] = EDGE_OBJTYPE
+            try:
+                self._orig = kwargs['orig']
+                self._dest = kwargs['dest']
+            except KeyError as e:
+                raise Error('Missing required Edge fresh-construction argument %s' % e)
+        self._delete_me = False
+ 
+    def save(self):
+        '''
+        Make sure card oids are up to date and save data
+
+        This function basically assumes it is being called right after you went
+        through all the cards in a graph and saved them. It has to get their
+        new ids and save them in itself to keep the graph consistent.
+        '''
+        # do nothing if already saved
+        if not self.dirty:
+            return self.obj.oid
+        # load origin
+        if self._orig.obj.oid:
+            self.obj['orig'] = self._orig.obj.oid
+        else:
+            raise Error('Failed to save edge: origin card has not been saved')
+        # load dest
+        if self._dest.obj.oid:
+            self.obj['dest'] = self._dest.obj.oid
+        else:
+            raise Error('Failed to save edge: dest card has not been saved')
+        # ok, now really save
+        return self.obj.save(self.graph.datastore)
+
+    def set_orig(self, new):
+        "Set origin card, do bookkeeping"
+        assert new.graph is self.graph
+        self._orig = new
+        self.obj['orig'] = '' # invalidate
+    def get_orig(self):
+        return self._orig
+    orig = property(get_orig, set_orig)
+    
+    def set_dest(self, new):
+        "Set dest card, plus bookkeeping"
+        assert new.graph is self.graph
+        self._dest = new
+        self.obj['dest'] = ''
+    def get_dest(self):
+        return self._dest
+    dest = property(get_dest, set_dest)
+
+    @property
+    def dirty(self):
+        return self.obj.oid is None or self._orig.dirty or self._dest.dirty
+
+    @property
+    def delete_me(self):
+        return self._delete_me
 

@@ -12,16 +12,22 @@ g = Graph(dat, None)
 
 c = g.new_card()
 c.obj['text'] = 'card 1'
-
-g.commit()
-
 c2 = g.new_card()
 c2.obj['text'] = 'number 2'
+c3 = g.new_card()
+c3.obj['text'] = 'numero tres'
 
 g.commit()
 
-c.delete()
-c2.obj['text'] = 'number 2\n\nyeah!'
+# make an edge
+e1 = g.new_edge(c, c2)
+
+g.commit()
+
+# modify more stuff
+c.text = 'card 1, rev 2'
+e1.dest = c3
+e2 = g.new_edge(c3, c2)
 
 last_commit = g.commit()
 
@@ -31,6 +37,7 @@ for k,v in dat.getall():
 
 # now load it fresh
 g2 = Graph(dat, last_commit)
-assert g2.cards[0].obj.oid == g.cards[0].obj.oid
 
+assert set(g.obj['cards']) == set(g2.obj['cards'])
+assert set(g.obj['edges']) == set(g2.obj['edges'])
 
