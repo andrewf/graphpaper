@@ -6,10 +6,11 @@ import os
 from Tkinter import *
 import tkFileDialog
 
-#import model
+import model
 import gpfile
 
 from viewportcard import ViewportCard
+from viewportedge import ViewportEdge
 
 
 class GPViewport(Frame):
@@ -47,6 +48,9 @@ class GPViewport(Frame):
         # load cards
         self.cards = [ViewportCard(self, self.gpfile, card) for card in self.data.get_cards()]
         self.reset_scroll_region()
+        # test edges
+        edge = model.Edge(self.data, orig=self.data.get_cards()[0], dest=self.data.get_cards()[1])
+        self.edge = ViewportEdge(self, self.gpfile, edge, self.cards[0], self.cards[1])
         # set up scrolling
         self.yscroll["command"] = self.canvas.yview
         self.xscroll["command"] = self.canvas.xview

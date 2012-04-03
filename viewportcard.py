@@ -3,6 +3,7 @@ from ScrolledText import ScrolledText
 import tkMessageBox
 
 from tkex import ResizableCanvasFrame
+from slot import Slot
 
 class ViewportCard(object):
     '''
@@ -21,6 +22,9 @@ class ViewportCard(object):
         self.moving_edgescroll_id = None
         self.resize_state = None
         self.resize_edgescroll_id = None
+        # slot triggered when geometry (pos/size) changes
+        # fn args: (x, y, w, h)
+        self.slot = Slot()
 
     def draw(self):
         self.frame_thickness = 5
@@ -110,6 +114,7 @@ class ViewportCard(object):
             else:
                 delta = (event.x, event.y)
             self.window.move(delta[0], delta[1])
+            self.geometry_callback()
             self.viewport.reset_scroll_region()
             return "break"
 
@@ -120,6 +125,7 @@ class ViewportCard(object):
             self.card.x, self.card.y = new_coords[0], new_coords[1]
             self.gpfile.commit()
             self.cancel_moving_edgescroll_callback()
+            self.geometry_callback()
 
     def focusin(self, event):
         #print "focusing text"
@@ -146,5 +152,18 @@ class ViewportCard(object):
         # and put them in the model.card
         self.card.x, self.card.y = self.window.canvas_coords()
         self.card.w, self.card.h = self.window.winfo_width(), self.window.winfo_height()
+        self.geometry_callback() # here so it gets called after resizing
         self.gpfile.commit()
  
+    def add_signal(self, fn):
+        return self.slot.add(fn)
+
+    def remove_signal(self, handle):
+        self.slot.remove(handle)
+
+    def geometry_callback(self):
+        x, y = self.canvas_coords()
+        w, h = self.window.winfo_width(), self.window.winfo_height()
+        print 'geometry callback'
+        self.slot.signal(x, y, w, h)
+
