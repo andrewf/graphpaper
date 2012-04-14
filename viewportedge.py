@@ -87,7 +87,7 @@ class ViewportEdge(object):
             *(self.get_coords()),
             arrow='last',
             smooth='raw',
-            width=4,
+            width=6,
             fill='blue'
         )
         # set up state
@@ -113,14 +113,11 @@ class ViewportEdge(object):
         orig = self.edge.orig
         dest = self.edge.dest
         start_point = (orig.x + orig.w/2, orig.y + orig.h/2)
-        end_point = (dest.x + orig.w/2, dest.y + orig.h/2)
+        end_point = (dest.x + dest.w/2, dest.y + dest.h/2)
         #adjust both points to be on edges of cards
         start_point = adjust_point(start_point, card_box(orig), end_point)
         end_point = adjust_point(end_point, card_box(dest), start_point)
         self.coords = [start_point, end_point]
-        print 'edge points: ', start_point, end_point
-        print '  orig: ', orig.text[:30]
-        print '  dest: ', dest.text[:30]
 
     def get_coords(self):
         "return self.coords in a flattened list"
