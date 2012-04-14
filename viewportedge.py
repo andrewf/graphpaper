@@ -2,6 +2,51 @@
 Contains class for managing viewport manifestation of edges.
 '''
 
+def adjust_point(p1, box, p2):
+    '''
+    Moves p1 along the line p1<->p2 to be on an edge of box
+
+    Args:
+    * p1: (x:int, y:int)
+    * box: (x:int, y:int, w:int, h:int)
+    * p2: (x2:int, y2:int)
+
+    Returns:
+    (x:int, y:int), new version of p1
+    '''
+    # fn for line <--p1--p2-->
+    rise = float(p2[1]) - p1[1]
+    run = float(p2[0]) - p1[0]
+    #m = rise / run
+    y = lambda x: int( rise*(x - p1[0])/run  + p1[1] )
+    x = lambda y: int(  run*(y - p1[1])/rise + p1[0] )
+    # see if the x-coord of the relevant side wall of the wall gives
+    # us a valid y-value. if so, return it
+    relevant_x = box[0] if run < 0 else box[0] + box[2]
+    if run == 0: return relevant_x, p1[1]
+    wall_y = y(relevant_x)
+    if box[1] <= wall_y <= box[1] + box[3]:
+        print 'side:', relevant_x, wall_y
+        return (relevant_x, wall_y)
+    # if we get here, we know the intersection is on the top or bottom
+    relevant_y = box[1] if rise < 0 else box[1] + box[3]
+    #if rise == 0: return p1[0], relevant_y
+    print 'top/bot:', x(relevant_y), relevant_y
+    return x(relevant_y), relevant_y
+
+def card_box(card):
+    '''
+    return bounding box of card as (x, y, w, h)
+    card is a model.Card
+    '''
+    return card.x, card.y, card.w, card.h
+
+def box_center(box):
+    '''
+    center point of box in tuple format, like above fn
+    '''
+    return (box[0] + box[2]/2, box[1] + box[3]/2)
+
 class ViewportEdge(object):
     '''
     Class for displaying edges
@@ -18,6 +63,7 @@ class ViewportEdge(object):
     * dest: ViewportCard or None
     * orig_callback: int callback handle for geometry callback on orig card
     * dest_callback: as above, s/orig/dest/g
+    * coords = [[int]], list of endpoints (post-adjustment), stor
     '''
     def __init__(self, viewport, gpfile, edge, orig, dest):
         '''
@@ -32,6 +78,7 @@ class ViewportEdge(object):
         self.canvas = viewport.canvas
         self.gpfile = gpfile
         # draw self
+        self.reset_coords()
         self.itemid = self.canvas.create_line(
             #0, 0, 100, 0, 100, 100, 200, 100,
             # have to unpack self.get_coords as first args, not last
@@ -48,11 +95,11 @@ class ViewportEdge(object):
 
     def refresh(self):
         self.canvas.coords(self.itemid, *self.get_coords())
-        #self.itemid.coords(*(self.get_coords()))
 
-    def get_coords(self):
+    def reset_coords(self):
         '''
-        Return a list of points for the edge to pass through.
+        Set self.coords based on current cards. Only call when orig and
+        dest are valid.
 
         Calculates from the position of self.edge.orig/dest,
         and at some point from the mouse position I guess.
@@ -65,13 +112,36 @@ class ViewportEdge(object):
         dest = self.edge.dest
         start_point = (orig.x + orig.w/2, orig.y + orig.h/2)
         end_point = (dest.x + orig.w/2, dest.y + orig.h/2)
+        #adjust both points to be on edges of cards
+        start_point = adjust_point(start_point, card_box(orig), end_point)
+        end_point = adjust_point(end_point, card_box(dest), start_point)
+        self.coords = [start_point, end_point]
         print 'edge points: ', start_point, end_point
         print '  orig: ', orig.text[:30]
         print '  dest: ', dest.text[:30]
-        return (start_point[0], start_point[1], end_point[0], end_point[1])
 
-    def geometry_callback(self, *args):
+    def get_coords(self):
+        "return self.coords in a flattened list"
+        return self.coords[0][0], self.coords[0][1], self.coords[1][0], self.coords[1][1]
+
+    def geometry_callback(self, card, x, y, w, h):
         "For passing to ViewportCard slots"
+        # we know here that both ends are card-based, no mouse and no loose ends
+        box = (x, y, w, h)
+        point = (x + w/2, y + h/2) # point in middle of whatever card moved
+        # we have to adjust both points, the moved point by the passed box and
+        # the other point by the stored box
+        if card is self.orig:
+            self.coords[0] = adjust_point(point, box, self.coords[1])
+            otherbox = card_box(self.dest.card)
+            self.coords[1] = adjust_point(box_center(otherbox), otherbox, point)
+        elif card is self.dest:
+            self.coords[1] = adjust_point(point, box, self.coords[0])
+            otherbox = card_box(self.orig.card)
+            self.coords[0] = adjust_point(box_center(otherbox), otherbox, point)
+        else:
+            raise 'Card must be either orig or dest.'
+        # adjust both ends
         self.refresh()
 
     def get_orig(self):

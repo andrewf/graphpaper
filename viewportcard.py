@@ -23,7 +23,7 @@ class ViewportCard(object):
         self.resize_state = None
         self.resize_edgescroll_id = None
         # slot triggered when geometry (pos/size) changes
-        # fn args: (x, y, w, h)
+        # fn args: (self, x, y, w, h)
         self.slot = Slot()
 
     def draw(self):
@@ -164,6 +164,5 @@ class ViewportCard(object):
     def geometry_callback(self):
         x, y = self.canvas_coords()
         w, h = self.window.winfo_width(), self.window.winfo_height()
-        print 'geometry callback'
-        self.slot.signal(x, y, w, h)
+        self.slot.signal(self, x, y, w, h)
 
