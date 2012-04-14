@@ -15,23 +15,25 @@ def adjust_point(p1, box, p2):
     (x:int, y:int), new version of p1
     '''
     # fn for line <--p1--p2-->
-    rise = float(p2[1]) - p1[1]
-    run = float(p2[0]) - p1[0]
-    #m = rise / run
+    rise = p2[1] - p1[1]
+    run  = p2[0] - p1[0]
+    # remember, y - y1 = m(x - x1), m = rise/run
     y = lambda x: int( rise*(x - p1[0])/run  + p1[1] )
     x = lambda y: int(  run*(y - p1[1])/rise + p1[0] )
+    # coords of side wall and top/bot of box facing p2
+    relevant_x = box[0] if run < 0 else box[0] + box[2]
+    relevant_y = box[1] if rise < 0 else box[1] + box[3]
+    # bail early if edge is vertical or horizontal
+    if run == 0:
+        return p1[0], relevant_y
+    if rise == 0:
+        return relevant_x, p1[1]
     # see if the x-coord of the relevant side wall of the wall gives
     # us a valid y-value. if so, return it
-    relevant_x = box[0] if run < 0 else box[0] + box[2]
-    if run == 0: return relevant_x, p1[1]
     wall_y = y(relevant_x)
     if box[1] <= wall_y <= box[1] + box[3]:
-        print 'side:', relevant_x, wall_y
         return (relevant_x, wall_y)
     # if we get here, we know the intersection is on the top or bottom
-    relevant_y = box[1] if rise < 0 else box[1] + box[3]
-    #if rise == 0: return p1[0], relevant_y
-    print 'top/bot:', x(relevant_y), relevant_y
     return x(relevant_y), relevant_y
 
 def card_box(card):
