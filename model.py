@@ -1,242 +1,315 @@
-import sqlite3
-import hashlib
-import re
-from os import path
+'''
+Contains the latest version of the basic data model classes.
+'''
 
-import minijson
+import storable
 
-def sha1(dat):
-    hasher = hashlib.sha1()
-    hasher.update(dat)
-    return hasher.hexdigest()
+COMMIT_OBJTYPE = 'commit'
+CARD_OBJTYPE = 'card'
+EDGE_OBJTYPE = 'edge'
+objtype = 'objtype'
 
-class ConfigDict(object):
-    def __init__(self, connection):
-        self.conn = connection
-    def __getitem__(self, key):
-        result = self.conn.execute("select value from config where key = ?", (key,)).fetchone()
-        # result is a 1-tuple or None
-        if result:
-            return result[0]
-        else:
-            return None
-    def __setitem__(self, key, value):
-        self.conn.execute("insert into config values (?, ?)", (key, value))
-        self.conn.commit()
+MIN_CARD_SIZE = 20
 
-class DataStore(object):
-    '''
-    Represents a loaded set of cards, edges and edgetypes
-
-    Construct with a filename. Creates the file if it doesn't exist
-    Also includes config
-    '''
-    def __init__(self, filename, load_sample_data=False):
-        '''
-        Initialize the data store. If the file doesn't exist, adds the
-        infrastructure, and optionally the sample data.
-        '''
-        # if the file exists, don't load_sample_data
-        if path.exists(filename):
-            load_sample_data = False
-            load_schema = False
-        else:
-            load_schema = True
-        # filename goes to sqlite
-        self.conn = sqlite3.connect(filename)
-        self.config = ConfigDict(self.conn)
-        # now load sample data
-        if load_schema: self.load_schema()
-        if load_sample_data: self.load_sample_data()
-        # load cards into self.cards
-        self.cards = []
-        for hsh, data in self.conn.execute("select * from cards"):
-            self.cards.append(Card(self, hash=hsh, data=data))
-    def get_cards(self):
-        return self.cards
-    def new_card(self, x, y, w, h):
-        card = Card(self, x, y, w, h)
-        self.cards.append(card)
-        return card
-    # GraphPaper datastore API. The standard bits
-    def create_card(self, data):
-        # takes card in string serialize form, adds it to db, returns new id
-        new_hash = sha1(data)
-        self.conn.execute("insert into cards (key, value) values (?, ?)", (new_hash, data))
-        # ignore theoretical collision possibility ^^^
-        self.conn.commit()
-        return new_hash
-    def modify_card(self, old_hash, data):
-        '''
-        Input hash of old card to change and new data, get a hash
-        of the new data, after it's sitting in the db. Returns None on error.
-        '''
-        # remember, we can rollback on sqlite any time
-        # make sure old card exists
-        if not self.conn.execute("select * from cards where key = ?", (old_hash,)).fetchone():
-            print "old hash %s not found!!! aborting save" % old_hash
-            return None
-        # add new card
-        new_hash = sha1(data)
-        # no-op if data is the same: don't want to delete it
-        if new_hash == old_hash:
-            return old_hash
-        # no going back
-        self.conn.execute("insert into cards (key, value) values (?, ?)", (new_hash, data))
-        self.conn.execute("delete from cards where key = ?", (old_hash,))
-        self.conn.commit()
-        return new_hash
-    def delete_card(self, card_hash):
-        # check card exists:
-        if not self.conn.execute("select * from cards where key = ?", (card_hash,)):
-            print "trying to delete non-existent card!"
-            return
-        self.conn.execute("delete from cards where key = ?", (card_hash,))
-        self.conn.commit()
-    def load_schema(self):
-        # load it from schema.sql in this dir
-        self.conn.executescript(open("schema.sql").read())
-        # these have to be there if the file didn't exist
-        self.config['viewport_x'] = 0
-        self.config['viewport_y'] = 0
-        self.config['viewport_w'] = 600
-        self.config['viewport_h'] = 400
-    def load_sample_data(self):
-        for datum in [
-            "{-100,-50,200,100}Foobar baz\n\nGrup grup jubyr fret yup.\nfkakeander f.",
-            "{10,20,150,300}I'm a card with one line",
-            "{200,200,150,100}No edges yet\n\nedges are too hard still. We'll do them later"
-        ]:
-            self.create_card(datum)
-
-
-class InvalidCard(Exception):
+class Error(Exception):
     pass
+
+class Graph(object):
+    '''
+    Interface for managing and saving a version of the graph.
+
+    Members:
+    * datastore: a kvstore.KVStore used to store everything.
+    '''
+
+    def __init__(self, datastore, oid):
+        '''
+        Load the graph specified by the commit from the datastore.
+
+        If oid is None, create empty graph. If oid is invalid or not
+        a commit, error out.
+        '''
+        self.obj = storable.Storable()
+        self.datastore = datastore
+        if oid:
+            try:
+                self.obj.load(datastore, oid)
+            except storable.KeyError:
+                # key missing
+                raise Error('Can\'t find commit %s' % oid)
+            except storable.Error:
+                raise Error('commit %s is invalid?' % oid)
+            else:
+                # loaded successfully
+                # check validity
+                if not self.obj[objtype] == COMMIT_OBJTYPE:
+                    raise Error('Graph found invalid commit %s' % oid)
+                # check schema?
+                # all good
+        else:
+            self.load_empty_graph()
+        # while loading cards, build dict of oids to cards
+        # we only need this during loading phase to give to edge constructors
+        card_dict = {}
+        self.cards = []
+        for oid in self.obj['cards']:
+            c = Card(self, oid)
+            card_dict[oid] = c
+            self.cards.append(c)
+        card_mapper = lambda oid: card_dict.get(oid, None)
+        self.edges = [Edge(self, oid, card_mapper) for oid in self.obj['edges']]
+
+    def get_cards(self):
+        '''
+        Return all cards, somehow, as model.Card's
+        '''
+        return self.cards
+
+    def new_card(self, x=0, y=0, w=MIN_CARD_SIZE, h=MIN_CARD_SIZE):
+        c = Card(self, None)
+        c.x = x
+        c.y = y
+        c.w = w
+        c.h = h
+        self.cards.append(c)
+        return c
+
+    def new_edge(self, orig, dest):
+        e = Edge(self, orig=orig, dest=dest)
+        self.edges.append(e)
+        return e
+
+    def commit(self):
+        '''
+        Save a new commit object
+
+        Save all the cards, delete those that want to be deleted, get
+        the remaining hashes, and stuff it all in the datastore.
+        '''
+        old_id = self.obj.oid
+        to_delete = []
+        # update card ids
+        for card in self.cards:
+            if card.delete_me:
+                to_delete.append(card)
+            elif card.dirty:
+                card.save()
+        for card in to_delete:
+            self.cards.remove(card) # TODO: more efficient algo
+        # reuse deletion list for edges
+        to_delete = []
+        # update edge ids
+        for edge in self.edges:
+            if edge.delete_me:
+                to_delete.append(edge)
+            elif edge.dirty:
+                edge.save()
+        for edge in to_delete:
+            self.edges.remove(edge)
+        # load up new commit object
+        get_oid = lambda c: c.obj.oid
+        self.obj['cards'] = map(get_oid, self.cards)
+        self.obj['edges'] = map(get_oid, self.edges)
+        self.obj['parent'] = old_id
+        return self.obj.save(self.datastore)
+
+    def load_empty_graph(self):
+        '''
+        Initialize self.obj with data for an empty graph.
+
+        Make parent null, and empty lists of cards and edges
+        '''
+        self.obj[objtype] = COMMIT_OBJTYPE
+        self.obj['parent'] = None
+        self.obj['cards'] = []
+        self.obj['edges'] = []
+
 
 class Card(object):
     '''
-    A single card. All properties, when written, write to the
-    data store. For now, that means it hits sqlite which (I think)
-    hits the disk. Someday we'll do something more intelligent.
-    Probably after a rewrite.
-
-    members:
-    * hash: the current id as supplied by the data store
-    * _x, _y, _w, _h: position and dimensions of card
-    * _text: text of the card
-    * x, y, w, h, text: properties that save when modified
+    Wraps a Storable to represent a card
     '''
-    def __init__(self, datastore, *args, **kwargs):
-        '''
-        Creates a representation of a card object. Must be called in one
-        of two ways
-        
-        Card(datastore, hash=<hash>, data=<data>)
-        Card(datastore, x, y, w, h)
 
-        The first form is for loading a card from the store. The second is
-        for creating new cards. I'm not going to do much checking, so be
-        careful.
+    def __init__(self, graph, oid=None):
         '''
-        self.datastore = datastore
-        # there should either be args or kwargs, but not both. just assume it:
-        if kwargs:
-            # loading
-            self.hash = kwargs['hash']
-            self.unpack(kwargs['data']) # let errors out
-        else:
-            # new card, with no hash yet
-            assert len(args) == 4
-            self._x = args[0]
-            self._y = args[1]
-            self._w = args[2]
-            self._h = args[3]
-            self._text = ''
-            # save it and keep id
-            self.hash = self.datastore.create_card(str(self))
-    def get_x(self): return self._x
-    def get_y(self): return self._y
-    def get_w(self): return self._w
-    def get_h(self): return self._h
-    def get_text(self): return self._text
-    def save(self):
-        # write self in standard format
-        # send command to datastore
-        self.hash = self.datastore.modify_card(self.hash, str(self))
-    def set_pos(self, x, y):
-        self._x = x
-        self._y = y
-        self.save()
-    def set_dimensions(self, w, h):
-        self._w = w
-        self._h = h
-        self.save()
-    def set_x(self, x):
-        self._x = x
-        self.save()
-    def set_y(self, y):
-        self._y = y
-        self.save()
-    def set_w(self, w):
-        self._w = w
-        self.save()
-    def set_h(self, h):
-        self._h = h
-        self.save()
-    def set_text(self, text):
-        self._text = text
-        self.save()
-    x = property(get_x, set_x)
-    y = property(get_y, set_y)
-    w = property(get_w, set_w)
-    h = property(get_h, set_h)
-    text = property(get_text, set_text)
-    def __str__(self):
-        return minijson.encode({
-            'objtype': 'card',
-            'x': int(self._x),
-            'y': int(self._y),
-            'w': int(self._w),
-            'h': int(self._h),
-            'text': self._text,
-        })
+        Load self from datastore, or create new card
 
-    def unpack(self, string):
-        old_regex = re.compile(
-            r'''{(?P<x>-?\d+),(?P<y>-?\d+),(?P<w>-?\d+),(?P<h>-?\d+)}(?P<text>.*)''',
-            flags = re.MULTILINE | re.DOTALL # must match multiple lines of text
-        )
-        match = old_regex.match(string)
-        if match:
-            # this is an old-format card
-            self._x = int(match.group('x'))
-            self._y = int(match.group('y'))
-            self._w = int(match.group('w'))
-            self._h = int(match.group('h'))
-            self._text = match.group('text')
-        else:
+        If oid is invalid, error. If oid is None, create new card.
+        '''
+        self.graph = graph
+        self.obj = storable.Storable()
+        if oid is not None:
             try:
-                data = minijson.decode(string)
-                self._x = data['x']
-                self._y = data['y']
-                self._w = data['w']
-                self._h = data['h']
-                self._text = data['text']
-            except ValueError:
-                raise InvalidCard("Could not parse card at all!")
+                self.obj.load(self.graph.datastore, oid)
+            except storable.Error:
+                raise Error('Failed to find card %s' % oid)
+            # validate card
+            try:
+                if not self.obj[objtype] == CARD_OBJTYPE:
+                    raise Error('Invalid card at %s' % oid)
             except KeyError:
-                raise InvalidCard("Card data did not contain all required fields!")
-        # make sure w and h are valid
-        if self._w <= 0:
-            raise InvalidCard('Card width must be > 0!')
-        if self._h <= 0:
-            raise InvalidCard('Card height must be > 0!')
+                raise Error('Alleged card has no objtype at %s' % oid)
+            for prop in ('text', 'x', 'y', 'w', 'h'):
+                if not prop in self.obj:
+                    raise Error('Card missing property "%s" at %s' % (prop, oid))
+        else:
+            self.load_empty_card()
+        # initialize deletion flag
+        self._delete_me = False
+
+    def load_empty_card(self):
+        self.obj[objtype] = CARD_OBJTYPE
+        self.obj['text'] = ''
+        self.x = 0
+        self.y = 0
+        self.w = MIN_CARD_SIZE
+        self.h = MIN_CARD_SIZE        
+
+    def save(self):
+        return self.obj.save(self.graph.datastore)
 
     def delete(self):
-        self.datastore.delete_card(self.hash)
+        self._delete_me = True
 
-class Edge:
-    pass
+    def set_x(self, x):
+        self.obj['x'] = x
+    def get_x(self):
+        return self.obj['x']
+    x = property(get_x, set_x)
 
-class EdgeType:
-    pass
+    def set_y(self, y):
+        self.obj['y'] = y
+    def get_y(self):
+        return self.obj['y']
+    y = property(get_y, set_y)
+
+    def set_w(self, w):
+        self.obj['w'] = max(w, MIN_CARD_SIZE)
+    def get_w(self):
+        return self.obj['w']
+    w = property(get_w, set_w)
+
+    def set_h(self, h):
+        self.obj['h'] = max(h, MIN_CARD_SIZE)
+    def get_h(self):
+        return self.obj['h']
+    h = property(get_h, set_h)
+
+    def set_text(self, text):
+        self.obj['text'] = text
+    def get_text(self):
+        return self.obj['text']
+    text = property(get_text, set_text)
+
+    @property
+    def delete_me(self):
+        return self._delete_me
+    
+    @property
+    def dirty(self):
+        return self.obj.oid is None
+
+
+class Edge(object):
+    def __init__(self, graph, oid=None, card_by_oid=None, **kwargs):
+        '''
+        Load self from datastore, or create new Edge
+
+        Must be called in one of two ways:
+         * Edge(graph, oid, id_map(oid)->model.Card), when loading from a commit
+         * Edge(graph, orig=model.Card, dest=model.Card), when creating from scratch
+
+        In the first case, the second parameter is a function mapping card oids
+        to the corresponding model.Card. Edge needs to keep track of the actual
+        Card object, and has no other way to get it from the oids in its data.
+        The function should return None if it can't find the card.
+
+        In the second case, oid is None and both keyword args must be present.
+        Someday it will accept other parameters for edge type and whatever else,
+        but for now any other kwargs will be ignored.
+        '''
+        self.graph = graph
+        self.obj = storable.Storable()
+        if oid is not None:
+            # load from kvstore
+            try:
+                self.obj.load(self.graph.datastore, oid)
+            except storable.Error:
+                raise Error('Failed to find edge %s' % oid)
+            # validate
+            # edge must have objtype == 'edge' and orig & dest in set of cards
+            try:
+                if not self.obj[objtype] == EDGE_OBJTYPE:
+                    raise Error('Alleged edge %s has wrong objtype' % oid)
+                self._orig = card_by_oid(self.obj['orig'])
+                if not self._orig:
+                    raise Error('Edge %s has invalid origin card id %s' % (oid, self.obj['orig']))
+                self._dest = card_by_oid(self.obj['dest'])
+                if not self._dest:
+                    raise Error('Edge %s has invalid dest card id %s' % (oid, self.obj['dest']))
+            except KeyError as e:
+                raise Error('Edge %s is missing required field %s' % (oid, e))
+        else:
+            # create fresh edge
+            # not much to do here. most work will be done when saving, which
+            # gets the referenced cards' ids into self.obj
+            self.obj[objtype] = EDGE_OBJTYPE
+            try:
+                self._orig = kwargs['orig']
+                self._dest = kwargs['dest']
+            except KeyError as e:
+                raise Error('Missing required Edge fresh-construction argument %s' % e)
+        self._delete_me = False
+ 
+    def save(self):
+        '''
+        Make sure card oids are up to date and save data
+
+        This function basically assumes it is being called right after you went
+        through all the cards in a graph and saved them. It has to get their
+        new ids and save them in itself to keep the graph consistent.
+        '''
+        # do nothing if already saved
+        if not self.dirty:
+            return self.obj.oid
+        # load origin
+        if self._orig.obj.oid:
+            self.obj['orig'] = self._orig.obj.oid
+        else:
+            raise Error('Failed to save edge: origin card has not been saved')
+        # load dest
+        if self._dest.obj.oid:
+            self.obj['dest'] = self._dest.obj.oid
+        else:
+            raise Error('Failed to save edge: dest card has not been saved')
+        # ok, now really save
+        return self.obj.save(self.graph.datastore)
+
+    def set_orig(self, new):
+        "Set origin card, do bookkeeping"
+        assert new.graph is self.graph
+        self._orig = new
+        self.obj['orig'] = '' # invalidate
+    def get_orig(self):
+        return self._orig
+    orig = property(get_orig, set_orig)
+    
+    def set_dest(self, new):
+        "Set dest card, plus bookkeeping"
+        assert new.graph is self.graph
+        self._dest = new
+        self.obj['dest'] = ''
+    def get_dest(self):
+        return self._dest
+    dest = property(get_dest, set_dest)
+
+    @property
+    def dirty(self):
+        return self.obj.oid is None or self._orig.dirty or self._dest.dirty
+
+    @property
+    def delete_me(self):
+        # note that for this to work, both cards have to be not actually
+        # deleted yet. GC should handle this fine...
+        return self._delete_me or self._orig.delete_me or self._dest.delete_me
+

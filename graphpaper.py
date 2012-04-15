@@ -7,17 +7,21 @@ from Tkinter import *
 import tkFileDialog
 
 import model
+import gpfile
 
 from viewportcard import ViewportCard
+from viewportedge import ViewportEdge
 
 
 class GPViewport(Frame):
-    def __init__(self, master, datastore):
+    def __init__(self, master, gpfile):
         Frame.__init__(self, None)
         # load data
-        self.data = datastore
-        self.width = self.data.config['viewport_w']
-        self.height = self.data.config['viewport_h']
+        self.gpfile = gpfile
+        self.data = gpfile.graph
+        self.config = gpfile.config
+        self.width = self.config['viewport_w']
+        self.height = self.config['viewport_h']
         # display self, create util frame
         self.pack(expand=1, fill="both")
         self.utility_frame()
@@ -42,15 +46,18 @@ class GPViewport(Frame):
         self.canvas.bind("<B1-Motion>", self.mousemove)
         self.canvas.bind("<Configure>", self.resize)
         # load cards
-        self.cards = [ViewportCard(self, card) for card in self.data.get_cards()]
+        self.cards = [ViewportCard(self, self.gpfile, card) for card in self.data.get_cards()]
         self.reset_scroll_region()
+        # test edges
+        edge = model.Edge(self.data, orig=self.data.get_cards()[0], dest=self.data.get_cards()[1])
+        self.edge = ViewportEdge(self, self.gpfile, edge, self.cards[0], self.cards[1])
         # set up scrolling
         self.yscroll["command"] = self.canvas.yview
         self.xscroll["command"] = self.canvas.xview
         self.canvas["yscrollcommand"] = self.yscroll.set
         self.canvas["xscrollcommand"] = self.xscroll.set
-        self.canvas.xview(MOVETO, self.data.config['viewport_x'])
-        self.canvas.yview(MOVETO, self.data.config['viewport_y'])
+        self.canvas.xview(MOVETO, self.config['viewport_x'])
+        self.canvas.yview(MOVETO, self.config['viewport_y'])
         # set up drag scrolling
         self.dragging = False
         self.last_drag_coords = None
@@ -68,13 +75,33 @@ class GPViewport(Frame):
             box[2] + offset,
             box[3] + offset)
 
+    def card_collision(self, p):
+        '''
+        Return first card which the point p collides with, or None
+        if there is no collision.
+        '''
+        for card in self.cards:
+            c = card.card
+            if not (c.x <= p[0] <= (c.x + c.w)):
+                continue
+            if not (c.y <= p[1] <= (c.y + c.h)):
+                continue
+            return card
+        return None
+
     def utility_frame(self):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)
         self.util.pack(fill="y", side=LEFT)
 
     def new_card(self, x, y, w, h):
-        newcard = ViewportCard(self, self.data.new_card(x, y, w, h))
+        print 'new card', x, y, w, h
+        newcard = ViewportCard(
+            self,
+            self.gpfile,
+            self.data.new_card(x, y, w, h)
+        )
+        self.data.commit()
         self.cards.append(newcard)
         return newcard
 
@@ -82,8 +109,8 @@ class GPViewport(Frame):
         # save current scrolling position to config
         new_x = (self.canvas.canvasx(0))
         new_y = (self.canvas.canvasy(0))
-        self.data.config["viewport_x"] = new_x
-        self.data.config["viewport_y"] = new_y
+        self.config["viewport_x"] = new_x
+        self.config["viewport_y"] = new_y
 
     def edge_scroll(self, canvas_mouse_coords):
         '''
@@ -126,8 +153,8 @@ class GPViewport(Frame):
 
     def doubleclick(self, event):
         '''Create a new card on the canvas and focus it'''
-        default_w = int(self.data.config["default_card_w"] or 200)
-        default_h = int(self.data.config["default_card_h"] or 150)
+        default_w = int(self.config["default_card_w"] or 200)
+        default_h = int(self.config["default_card_h"] or 150)
         new_x = self.canvas.canvasx(event.x) - default_w/2
         new_y = self.canvas.canvasy(event.y) - default_h/2
         newcard = self.new_card(new_x, new_y, default_w, default_h)
@@ -155,8 +182,8 @@ class GPViewport(Frame):
             self.last_drag_coords = (event.x, event.y)
 
     def resize(self, event):
-        self.data.config["viewport_w"] = event.width - 2
-        self.data.config["viewport_h"] = event.height - 2
+        self.config["viewport_w"] = event.width - 2
+        self.config["viewport_h"] = event.height - 2
 
 
 class GPApp(object):
@@ -203,8 +230,8 @@ class GPApp(object):
         load_sample_data = filename is None
         filename = filename or self.default_filename
         if self.viewport:
-            self.viewport.destroy() # better hope that last card is saved
-        self.viewport = GPViewport(self.root, model.DataStore(filename, load_sample_data))
+            self.viewport.destroy()
+        self.viewport = GPViewport(self.root, gpfile.GraphPaperFile(filename))
         self.root.title('GraphPaper - %s' % filename)
 
     def newfile(self, *args):

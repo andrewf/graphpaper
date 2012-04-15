@@ -3,6 +3,7 @@ from ScrolledText import ScrolledText
 import tkMessageBox
 
 from tkex import ResizableCanvasFrame
+from slot import Slot
 
 class ViewportCard(object):
     '''
@@ -10,9 +11,10 @@ class ViewportCard(object):
     Tkinter canvas. Creates and destroys items as necessary, facilitates
     editing, and so on and so forth.
     '''
-    def __init__(self, viewport, card):
+    def __init__(self, viewport, gpfile, card):
         self.card = card
         self.viewport = viewport
+        self.gpfile = gpfile
         self.canvas = viewport.canvas
         self.draw()
         self.editing = False
@@ -20,6 +22,9 @@ class ViewportCard(object):
         self.moving_edgescroll_id = None
         self.resize_state = None
         self.resize_edgescroll_id = None
+        # slot triggered when geometry (pos/size) changes
+        # fn args: (self, x, y, w, h)
+        self.slot = Slot()
 
     def draw(self):
         self.frame_thickness = 5
@@ -109,6 +114,7 @@ class ViewportCard(object):
         text = self.get_text()
         if text != self.card.text:
             self.card.text = text
+            self.gpfile.commit()
 
     def canvas_coords(self):
         return self.window.canvas_coords()
@@ -162,6 +168,7 @@ class ViewportCard(object):
             else:
                 delta = (event.x, event.y)
             self.window.move(delta[0], delta[1])
+            self.geometry_callback()
             self.viewport.reset_scroll_region()
             return "break"
 
@@ -169,8 +176,10 @@ class ViewportCard(object):
         if self.moving:
             self.moving = False
             new_coords = self.canvas_coords()
-            self.card.set_pos(new_coords[0], new_coords[1])
+            self.card.x, self.card.y = new_coords[0], new_coords[1]
+            self.gpfile.commit()
             self.cancel_moving_edgescroll_callback()
+            self.geometry_callback()
 
     def configure(self, event):
         print 'configure'
@@ -194,12 +203,31 @@ class ViewportCard(object):
                 self.canvas.delete(handle)
             self.card.delete()
             self.window.destroy()
+            self.gpfile.commit()
         return "break"
 
     def save_card(self):
-        # grab values from self.window
-        self.card._x, self.card._y = self.window.canvas_coords()
-        self.card.w, self.card._h = self.window.winfo_width(), self.window.winfo_height()
-        self.card.save()
-        
+        # grab values from self.window,
+        # and put them in the model.card
+        self.card.x, self.card.y = self.window.canvas_coords()
+        self.card.w, self.card.h = self.window.winfo_width(), self.window.winfo_height()
+        self.geometry_callback() # here so it gets called after resizing
+        self.gpfile.commit()
  
+    def add_signal(self, fn):
+        return self.slot.add(fn)
+
+    def remove_signal(self, handle):
+        self.slot.remove(handle)
+
+    def geometry_callback(self):
+        x, y = self.canvas_coords()
+        w, h = self.window.winfo_width(), self.window.winfo_height()
+        self.slot.signal(self, x, y, w, h)
+
+    def highlight(self):
+        self.text.config(background='#ffffa2')
+
+    def unhighlight(self):
+        self.text.config(background='white')
+
