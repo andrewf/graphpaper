@@ -2,6 +2,8 @@
 Contains class for managing viewport manifestation of edges.
 '''
 
+from math import sqrt
+
 def adjust_point(p1, box, p2):
     '''
     Moves p1 along the line p1<->p2 to be on an edge of box
@@ -65,7 +67,8 @@ class ViewportEdge(object):
     * dest: ViewportCard or None
     * orig_callback: int callback handle for geometry callback on orig card
     * dest_callback: as above, s/orig/dest/g
-    * coords = [[int]], list of endpoints (post-adjustment), stor
+    * coords = [[int]], list of endpoints (post-adjustment)
+    * dragging_end = when dragging, and index into coords, else None
     '''
     def __init__(self, viewport, gpfile, edge, orig, dest):
         '''
@@ -88,12 +91,18 @@ class ViewportEdge(object):
             arrow='last',
             smooth='raw',
             width=6,
-            fill='blue'
+            fill='blue',
+            activefill='#6060ff'
         )
+        self.canvas.tag_bind(self.itemid, "<Button-1>", self.click)
+        self.canvas.tag_bind(self.itemid, "<B1-Motion>", self.mousemove)
+        self.canvas.tag_bind(self.itemid, "<ButtonRelease-1>", self.mouseup)
         # set up state
         self.orig_callback = self.dest_callback = None
         self.orig = orig
         self.dest = dest
+        # drag state
+        self.dragging_end = None # or 0 or 1
 
     def refresh(self):
         self.canvas.coords(self.itemid, *self.get_coords())
@@ -142,6 +151,54 @@ class ViewportEdge(object):
             raise 'Card must be either orig or dest.'
         # adjust both ends
         self.refresh()
+
+    def click(self, event):
+        '''
+        Determine which end of the edge was clicked on
+        '''
+        # event coords are window coords, not canvas coords
+        x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+        start_x, start_y = self.coords[0]
+        end_x, end_y = self.coords[1]
+        to_orig = sqrt((start_x - x)**2 + (start_y - y)**2)
+        to_dest = sqrt((end_x - x)**2 + (end_y - y)**2)
+        #print locals()
+        if to_orig < to_dest:
+            self.dragging_end = 0
+        elif to_dest < to_orig:
+            self.dragging_end = 1
+        else:
+            print 'seriously?'
+
+    def mousemove(self, event):
+        '''
+        Update dragging_end based on mousemove. Notify Viewport.
+        Later, highlight card.
+        '''
+#        print 'mousemove', event.x, event.y, self.dragging_end
+        if self.dragging_end is not None:
+            self.coords[self.dragging_end] = (
+                self.canvas.canvasx(event.x),
+                self.canvas.canvasy(event.y)
+            )
+            # adjust other endpoint
+            non_dragging_end = 1 if self.dragging_end == 0 else 0
+            non_drag_card = [self.orig, self.dest][non_dragging_end]
+            self.coords[non_dragging_end] = adjust_point(
+                self.coords[non_dragging_end],
+                card_box(non_drag_card.card),
+                self.coords[self.dragging_end]
+            )
+            self.refresh()
+
+    def mouseup(self, event):
+        '''
+        Choose card to land on. reset coords
+        '''
+#        print 'mouseup'
+        self.reset_coords()
+        self.refresh()
+        self.dragging_end = None
 
     def get_orig(self):
         return self._orig
