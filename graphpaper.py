@@ -75,6 +75,20 @@ class GPViewport(Frame):
             box[2] + offset,
             box[3] + offset)
 
+    def card_collision(self, p):
+        '''
+        Return first card which the point p collides with, or None
+        if there is no collision.
+        '''
+        for card in self.cards:
+            c = card.card
+            if not (c.x <= p[0] <= (c.x + c.w)):
+                continue
+            if not (c.y <= p[1] <= (c.y + c.h)):
+                continue
+            return card
+        return None
+
     def utility_frame(self):
         "create and pack a frame for random tools"
         self.util = Frame(self, width = 100)

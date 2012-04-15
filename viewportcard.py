@@ -166,3 +166,9 @@ class ViewportCard(object):
         w, h = self.window.winfo_width(), self.window.winfo_height()
         self.slot.signal(self, x, y, w, h)
 
+    def highlight(self):
+        self.text.config(background='#ffffa2')
+
+    def unhighlight(self):
+        self.text.config(background='white')
+

@@ -69,6 +69,7 @@ class ViewportEdge(object):
     * dest_callback: as above, s/orig/dest/g
     * coords = [[int]], list of endpoints (post-adjustment)
     * dragging_end = when dragging, and index into coords, else None
+    * highlighted_card = when dragging, the card we're highlighting (property)
     '''
     def __init__(self, viewport, gpfile, edge, orig, dest):
         '''
@@ -103,6 +104,7 @@ class ViewportEdge(object):
         self.dest = dest
         # drag state
         self.dragging_end = None # or 0 or 1
+        self._highlighted_card = None
 
     def refresh(self):
         self.canvas.coords(self.itemid, *self.get_coords())
@@ -182,23 +184,49 @@ class ViewportEdge(object):
                 self.canvas.canvasy(event.y)
             )
             # adjust other endpoint
-            non_dragging_end = 1 if self.dragging_end == 0 else 0
-            non_drag_card = [self.orig, self.dest][non_dragging_end]
+            non_dragging_end = int(not self.dragging_end)
+            non_drag_box = card_box([self.orig, self.dest][non_dragging_end].card)
             self.coords[non_dragging_end] = adjust_point(
-                self.coords[non_dragging_end],
-                card_box(non_drag_card.card),
+                box_center(non_drag_box),
+                non_drag_box,
                 self.coords[self.dragging_end]
             )
             self.refresh()
+            # check out card on other end
+            #print self.viewport.card_collision(self.coords[self.dragging_end])
+            self.highlighted_card = self.viewport.card_collision(self.coords[self.dragging_end])
 
     def mouseup(self, event):
         '''
         Choose card to land on. reset coords
         '''
 #        print 'mouseup'
-        self.reset_coords()
-        self.refresh()
-        self.dragging_end = None
+        if self.dragging_end is not None:
+            # set new end
+            # TODO: prevent edge with same card at both ends.
+            card = self.viewport.card_collision(self.coords[self.dragging_end])
+            if card is not None:
+                if self.dragging_end == 0:
+                    self.orig = card
+                else:
+                    self.dest = card
+            # update graphics
+            self.reset_coords()
+            self.refresh()
+            self.dragging_end = None
+            self.highlighted_card = None
+
+    def get_highlighted_card(self):
+        return self._highlighted_card
+    def set_highlighted_card(self, new):
+        if new is not self._highlighted_card:
+            if self._highlighted_card is not None:
+                self._highlighted_card.unhighlight()
+            if new is not None:
+                new.highlight()
+            self._highlighted_card = new
+        # else, no-op
+    highlighted_card = property(get_highlighted_card, set_highlighted_card)
 
     def get_orig(self):
         return self._orig
