@@ -4,53 +4,6 @@ Contains class for managing viewport manifestation of edges.
 
 from math import sqrt
 
-def adjust_point(p1, box, p2):
-    '''
-    Moves p1 along the line p1<->p2 to be on an edge of box
-
-    Args:
-    * p1: (x:int, y:int)
-    * box: (x:int, y:int, w:int, h:int)
-    * p2: (x2:int, y2:int)
-
-    Returns:
-    (x:int, y:int), new version of p1
-    '''
-    # fn for line <--p1--p2-->
-    rise = p2[1] - p1[1]
-    run  = p2[0] - p1[0]
-    # remember, y - y1 = m(x - x1), m = rise/run
-    y = lambda x: int( rise*(x - p1[0])/run  + p1[1] )
-    x = lambda y: int(  run*(y - p1[1])/rise + p1[0] )
-    # coords of side wall and top/bot of box facing p2
-    relevant_x = box[0] if run < 0 else box[0] + box[2]
-    relevant_y = box[1] if rise < 0 else box[1] + box[3]
-    # bail early if edge is vertical or horizontal
-    if run == 0:
-        return p1[0], relevant_y
-    if rise == 0:
-        return relevant_x, p1[1]
-    # see if the x-coord of the relevant side wall of the wall gives
-    # us a valid y-value. if so, return it
-    wall_y = y(relevant_x)
-    if box[1] <= wall_y <= box[1] + box[3]:
-        return (relevant_x, wall_y)
-    # if we get here, we know the intersection is on the top or bottom
-    return x(relevant_y), relevant_y
-
-def card_box(card):
-    '''
-    return bounding box of card as (x, y, w, h)
-    card is a model.Card
-    '''
-    return card.x, card.y, card.w, card.h
-
-def box_center(box):
-    '''
-    center point of box in tuple format, like above fn
-    '''
-    return (box[0] + box[2]/2, box[1] + box[3]/2)
-
 class ViewportEdge(object):
     '''
     Class for displaying edges
@@ -249,4 +202,52 @@ class ViewportEdge(object):
             self.dest_callback = dest.add_signal(self.geometry_callback)
             self.edge.dest = dest.card
     dest = property(get_dest, set_dest)
+
+def adjust_point(p1, box, p2):
+    '''
+    Moves p1 along the line p1<->p2 to be on an edge of box
+
+    Args:
+    * p1: (x:int, y:int)
+    * box: (x:int, y:int, w:int, h:int)
+    * p2: (x2:int, y2:int)
+
+    Returns:
+    (x:int, y:int), new version of p1
+    '''
+    # fn for line <--p1--p2-->
+    rise = p2[1] - p1[1]
+    run  = p2[0] - p1[0]
+    # remember, y - y1 = m(x - x1), m = rise/run
+    y = lambda x: int( rise*(x - p1[0])/run  + p1[1] )
+    x = lambda y: int(  run*(y - p1[1])/rise + p1[0] )
+    # coords of side wall and top/bot of box facing p2
+    relevant_x = box[0] if run < 0 else box[0] + box[2]
+    relevant_y = box[1] if rise < 0 else box[1] + box[3]
+    # bail early if edge is vertical or horizontal
+    if run == 0:
+        return p1[0], relevant_y
+    if rise == 0:
+        return relevant_x, p1[1]
+    # see if the x-coord of the relevant side wall of the wall gives
+    # us a valid y-value. if so, return it
+    wall_y = y(relevant_x)
+    if box[1] <= wall_y <= box[1] + box[3]:
+        return (relevant_x, wall_y)
+    # if we get here, we know the intersection is on the top or bottom
+    return x(relevant_y), relevant_y
+
+def card_box(card):
+    '''
+    return bounding box of card as (x, y, w, h)
+    card is a model.Card
+    '''
+    return card.x, card.y, card.w, card.h
+
+def box_center(box):
+    '''
+    center point of box in tuple format, like above fn
+    '''
+    return (box[0] + box[2]/2, box[1] + box[3]/2)
+
 

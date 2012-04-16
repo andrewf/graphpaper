@@ -66,7 +66,7 @@ class ViewportCard(object):
             # create circle suitable for edge-handle use
             new = self.canvas.create_oval(
                 bbox[0], bbox[1], bbox[2], bbox[3],
-                fill='blue',
+                fill='green',
                 outline=''
             )
             def foo(event):
@@ -84,8 +84,9 @@ class ViewportCard(object):
             return new
         x, y = self.window.canvas_coords()
         w, h = self.window.winfo_width(), self.window.winfo_height()
-        radius = 40
-        offset = 30 # offset of center of circle from card edge
+        # 2*radius should be < MIN_CARD_SIZE, and offset < radius
+        radius = 30
+        offset = 19 # offset of center of circle from card edge
         left_coords = (x + offset, y + h/2)
         right_coords = (x + w - offset, y + h/2)
         top_coords = (x + w/2 , y + offset)
