@@ -46,11 +46,27 @@ class GPViewport(Frame):
         self.canvas.bind("<B1-Motion>", self.mousemove)
         self.canvas.bind("<Configure>", self.resize)
         # load cards
-        self.cards = [ViewportCard(self, self.gpfile, card) for card in self.data.get_cards()]
+        cards_by_id = {}
+        self.cards = []
+        for card in self.data.get_cards():
+            new = ViewportCard(self, self.gpfile, card)
+            self.cards.append(new)
+            cards_by_id[card.obj.oid] = new
         self.reset_scroll_region()
+        # load edges
+        self.edges = []
+        for edge in self.data.get_edges():
+            new = ViewportEdge(
+                self,
+                self.gpfile,
+                edge,
+                cards_by_id[edge.orig.obj.oid],
+                cards_by_id[edge.dest.obj.oid]
+            )
+            self.edges.append(new)
         # test edges
-        edge = model.Edge(self.data, orig=self.data.get_cards()[0], dest=self.data.get_cards()[1])
-        self.edge = ViewportEdge(self, self.gpfile, edge, self.cards[0], self.cards[1])
+#        edge = model.Edge(self.data, orig=self.data.get_cards()[0], dest=self.data.get_cards()[1])
+#        self.edge = ViewportEdge(self, self.gpfile, edge, self.cards[0], self.cards[1])
         # set up scrolling
         self.yscroll["command"] = self.canvas.yview
         self.xscroll["command"] = self.canvas.xview

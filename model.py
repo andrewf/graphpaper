@@ -65,6 +65,10 @@ class Graph(object):
         '''
         return self.cards
 
+    def get_edges(self):
+        "as get_cards()"
+        return self.edges
+
     def new_card(self, x=0, y=0, w=MIN_CARD_SIZE, h=MIN_CARD_SIZE):
         c = Card(self, None)
         c.x = x

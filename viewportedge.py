@@ -3,6 +3,7 @@ Contains class for managing viewport manifestation of edges.
 '''
 
 from math import sqrt
+import model
 
 class ViewportEdge(object):
     '''
@@ -26,20 +27,49 @@ class ViewportEdge(object):
     '''
     def __init__(self, viewport, gpfile, edge, orig, dest):
         '''
+        Either load an edge from the datastore, or start creating
+        a new one. If edge is None, we're creating a new edge and
+        one of orig or dest should be None. Otherwise, edge should be a
+        model.Edge and orig and dest should both be ViewportCards
+        corresponding to the cards in edge.
+        
         Arguments:
         * viewport: GPViewport this edge lives in
         * gpfile: GPFile, needed for committing
-        * edge: model.Edge that we will be managing.
+        * edge: model.Edge that we will be managing, or None if creating a new edge.
+        * orig: ViewportCard or None, if dragging a new edge
+        * dest: as above, but more likely.
         '''
         # store all the arguments
         self.edge = edge
         self.viewport = viewport
         self.canvas = viewport.canvas
         self.gpfile = gpfile
+        # store nodes
+        self.orig_callback = self.dest_callback = None # callback attrs needed before setting nodes
+        self.orig = orig
+        self.dest = dest
+        # we basically need to decide whether to start off dragging
+        if edge:
+            # member vars are all good, theoretically.
+            # just need to self self.coords
+            self.reset_coords()
+            # not dragging.
+            self.dragging_end = None # or 0 or 1
+        else:
+            # we start off dragging
+            if self.orig:
+                self.dragging_end = 1
+                nondrag = self.orig
+            elif self.dest:
+                self.dragging_end = 0
+                nondrag = self.dest
+            # use fake initial pos
+            initpos = nondrag.canvas_coords()
+            self.coords = [initpos, (initpos[0] + 10, initpos[1] + 10)]
+        self._highlighted_card = None
         # draw self
-        self.reset_coords()
         self.itemid = self.canvas.create_line(
-            #0, 0, 100, 0, 100, 100, 200, 100,
             # have to unpack self.get_coords as first args, not last
             *(self.get_coords()),
             arrow='last',
@@ -51,13 +81,6 @@ class ViewportEdge(object):
         self.canvas.tag_bind(self.itemid, "<Button-1>", self.click)
         self.canvas.tag_bind(self.itemid, "<B1-Motion>", self.mousemove)
         self.canvas.tag_bind(self.itemid, "<ButtonRelease-1>", self.mouseup)
-        # set up state
-        self.orig_callback = self.dest_callback = None
-        self.orig = orig
-        self.dest = dest
-        # drag state
-        self.dragging_end = None # or 0 or 1
-        self._highlighted_card = None
 
     def refresh(self):
         self.canvas.coords(self.itemid, *self.get_coords())
@@ -65,11 +88,7 @@ class ViewportEdge(object):
     def reset_coords(self):
         '''
         Set self.coords based on current cards. Only call when orig and
-        dest are valid.
-
-        Calculates from the position of self.edge.orig/dest,
-        and at some point from the mouse position I guess.
-        Straight line between the centers of orig and dest.
+        dest are valid. Straight line between the centers of orig and dest.
         '''
         # watch out for loss of sync between viewport cards and model card
         # also, this will have to be rewritten at some point so any
@@ -163,11 +182,18 @@ class ViewportEdge(object):
                     self.orig = card
                 else:
                     self.dest = card
+            # create edge if needed (if this is first time edge is finished)
+            if self.edge is None:
+                self.edge = self.gpfile.graph.new_edge(
+                    orig = self.orig.card,
+                    dest = self.dest.card
+                )
             # update graphics
             self.reset_coords()
             self.refresh()
             self.dragging_end = None
             self.highlighted_card = None
+            self.gpfile.commit()
 
     def get_highlighted_card(self):
         return self._highlighted_card
@@ -189,7 +215,8 @@ class ViewportEdge(object):
         self._orig = orig
         if orig:
             self.orig_callback = orig.add_signal(self.geometry_callback)
-            self.edge.orig = orig.card
+            if self.edge:
+                self.edge.orig = orig.card
     orig = property(get_orig, set_orig)
 
     def get_dest(self):
@@ -200,8 +227,16 @@ class ViewportEdge(object):
         self._dest = dest
         if dest:
             self.dest_callback = dest.add_signal(self.geometry_callback)
-            self.edge.dest = dest.card
+            if self.edge:
+                self.edge.dest = dest.card
     dest = property(get_dest, set_dest)
+
+    @property
+    def non_dragging_end(self):
+        if self.dragging_end is not None:
+            # assume correct value of 0 or 1
+            return int(not self.dragging_end)
+        return None
 
 def adjust_point(p1, box, p2):
     '''

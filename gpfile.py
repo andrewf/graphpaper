@@ -52,8 +52,8 @@ class GraphPaperFile(object):
                 try:
                     self.graph = model.Graph(datastore, head_ptr)
                     # after this, should be all loaded
-                except model.Error:
-                    print 'failed to open gp file'
+                except model.Error as e:
+                    print 'failed to open gp file:', e
                     raise ValueError
 
     def load_default_config(self):

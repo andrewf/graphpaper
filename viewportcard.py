@@ -5,11 +5,27 @@ import tkMessageBox
 from tkex import ResizableCanvasFrame
 from slot import Slot
 
+from viewportedge import ViewportEdge
+
 class ViewportCard(object):
     '''
     Manages the graphical representation of a card in a
     Tkinter canvas. Creates and destroys items as necessary, facilitates
     editing, and so on and so forth.
+
+    Members:
+    * card: model.Card
+    * viewport: GPViewport
+    * gpfile: gpfile.GraphPaperFile, contains model.graph()
+    * canvas: TKinter canvas we get drawn on
+    * editing: bool, text is being edited
+    * moving: bool, being dragged
+    * moving_edgescroll_id: callback id to scroll periodicall when hovering
+      near edge of screen
+    * resize_state: {}
+    * resize_edgescroll_id: as moving_edgescroll_id
+    * slot: calls callbacks whenever geometry changes
+    * new_edge: if an edge is being dragged out from a handle, this is it.
     '''
     def __init__(self, viewport, gpfile, card):
         self.card = card
@@ -25,6 +41,7 @@ class ViewportCard(object):
         # slot triggered when geometry (pos/size) changes
         # fn args: (self, x, y, w, h)
         self.slot = Slot()
+        self.new_edge = None
 
     def draw(self):
         self.frame_thickness = 5
@@ -78,9 +95,9 @@ class ViewportCard(object):
             def dblclick(event):
                 print 'item double-click'
                 return 'break'
-            self.canvas.tag_bind(new, '<Button-1>', foo)
-            self.canvas.tag_bind(new, '<B1-Motion>', move)
-            self.canvas.tag_bind(new, '<Double-Button-1>', dblclick)
+            self.canvas.tag_bind(new, '<Button-1>', self.handle_click)
+            self.canvas.tag_bind(new, '<B1-Motion>', self.handle_mousemove)
+            self.canvas.tag_bind(new, '<ButtonRelease-1>', self.handle_mouseup)
             return new
         x, y = self.window.canvas_coords()
         w, h = self.window.winfo_width(), self.window.winfo_height()
@@ -181,6 +198,28 @@ class ViewportCard(object):
             self.gpfile.commit()
             self.cancel_moving_edgescroll_callback()
             self.geometry_callback()
+
+    # next several functions are bound to the circular edge handles
+    def handle_click(self, event):
+        # create new edge
+        self.new_edge = ViewportEdge(
+            self.viewport,
+            self.gpfile,
+            None,
+            self,
+            None
+        )
+        self.new_edge.mousemove(event) # give it a real start pos
+
+    def handle_mousemove(self, event):
+        if self.new_edge:
+            self.new_edge.mousemove(event)
+
+    def handle_mouseup(self, event):
+        if self.new_edge:
+            self.new_edge.mouseup(event)
+            self.new_edge = None
+        
 
     def configure(self, event):
         print 'configure'
