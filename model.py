@@ -272,6 +272,9 @@ class Edge(object):
             except KeyError as e:
                 raise Error('Missing required Edge fresh-construction argument %s' % e)
         self._delete_me = False
+
+    def delete(self):
+        self._delete_me = True
  
     def save(self):
         '''

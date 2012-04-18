@@ -40,7 +40,8 @@ class ViewportCard(object):
         self.resize_edgescroll_id = None
         # slot triggered when geometry (pos/size) changes
         # fn args: (self, x, y, w, h)
-        self.slot = Slot()
+        self.geom_slot = Slot()
+        self.deletion_slot = Slot()
         self.new_edge = None
 
     def draw(self):
@@ -219,10 +220,8 @@ class ViewportCard(object):
         if self.new_edge:
             self.new_edge.mouseup(event)
             self.new_edge = None
-        
 
     def configure(self, event):
-        print 'configure'
         self.redraw_edge_handles()
 
     def focusin(self, event):
@@ -238,9 +237,13 @@ class ViewportCard(object):
         if len(title_sample) > 20:
             title_sample = title_sample[:20] + '...'
         # delete the card
-        if tkMessageBox.askokcancel("Delete?", "Delete card \"%s\"?" % title_sample):
+        if tkMessageBox.askokcancel(
+            "Delete?",
+            "Delete card \"%s\" and all its edges?" % title_sample
+        ):
             for handle in self.edge_handles:
                 self.canvas.delete(handle)
+            self.deletion_slot.signal()
             self.card.delete()
             self.window.destroy()
             self.gpfile.commit()
@@ -254,16 +257,22 @@ class ViewportCard(object):
         self.geometry_callback() # here so it gets called after resizing
         self.gpfile.commit()
  
-    def add_signal(self, fn):
-        return self.slot.add(fn)
+    def add_geom_signal(self, fn):
+        return self.geom_slot.add(fn)
 
-    def remove_signal(self, handle):
-        self.slot.remove(handle)
+    def remove_geom_signal(self, handle):
+        self.geom_slot.remove(handle)
+
+    def add_deletion_signal(self, fn):
+        return self.deletion_slot.add(fn)
+
+    def remove_deletion_signal(self, handle):
+        self.deletion_slot.add(fn)
 
     def geometry_callback(self):
         x, y = self.canvas_coords()
         w, h = self.window.winfo_width(), self.window.winfo_height()
-        self.slot.signal(self, x, y, w, h)
+        self.geom_slot.signal(self, x, y, w, h)
 
     def highlight(self):
         self.text.config(background='#ffffa2')
