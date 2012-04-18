@@ -91,6 +91,12 @@ class Graph(object):
         the remaining hashes, and stuff it all in the datastore.
         '''
         old_id = self.obj.oid
+        # make sure obj.oid is None for any edges invalid now
+        # since we're about to save all the cards and otherwise
+        # edge.dirty would no longer be true and edges wouldn't get updated
+        for edge in self.edges:
+            if edge.dirty:
+                edge.invalidate() # sets edge.obj.oid = None
         to_delete = []
         # update card ids
         for card in self.cards:
@@ -100,9 +106,11 @@ class Graph(object):
                 card.save()
         for card in to_delete:
             self.cards.remove(card) # TODO: more efficient algo
-        # reuse deletion list for edges
+        # reuse deletion list for cards
         to_delete = []
         # update edge ids
+        # must be BEFORE cards, so edges will know which cards' hashes
+        # changed.
         for edge in self.edges:
             if edge.delete_me:
                 to_delete.append(edge)
@@ -310,6 +318,10 @@ class Edge(object):
     @property
     def dirty(self):
         return self.obj.oid is None or self._orig.dirty or self._dest.dirty
+
+    def invalidate(self):
+        "make self.dirty true, in cases where we know better"
+        self.obj.oid = None
 
     @property
     def delete_me(self):
