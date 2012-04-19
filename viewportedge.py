@@ -145,6 +145,9 @@ class ViewportEdge(object):
         if self.edge:
             self.edge.delete()
             self.gpfile.commit()
+        # clear any callbacks
+        self.orig = None
+        self.dest = None
 
     def click(self, event):
         '''
@@ -237,7 +240,7 @@ class ViewportEdge(object):
     def get_orig(self):
         return self._orig
     def set_orig(self, orig):
-        if self.orig_geom_callback: # let it proxy for both of them
+        if self.orig_geom_callback is not None: # let it proxy for both of them
             self.orig.remove_geom_signal(self.orig_geom_callback)
             self.orig.remove_deletion_signal(self.orig_deletion_callback)
         self._orig = orig
@@ -251,7 +254,7 @@ class ViewportEdge(object):
     def get_dest(self):
         return self._dest
     def set_dest(self, dest):
-        if self.dest_geom_callback:
+        if self.dest_geom_callback is not None:
             self.dest.remove_geom_signal(self.dest_geom_callback)
             self.dest.remove_deletion_signal(self.dest_deletion_callback)
         self._dest = dest
