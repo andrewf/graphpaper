@@ -57,7 +57,12 @@ class Graph(object):
             card_dict[oid] = c
             self.cards.append(c)
         card_mapper = lambda oid: card_dict.get(oid, None)
-        self.edges = [Edge(self, oid, card_mapper) for oid in self.obj['edges']]
+        if 'edges' in self.obj:
+            self.edges = [Edge(self, oid, card_mapper) for oid in self.obj['edges']]
+        else:
+            # may need to import an old file
+            self.obj['edges'] = []
+            self.edges = []
 
     def get_cards(self):
         '''
