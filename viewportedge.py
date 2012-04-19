@@ -213,6 +213,7 @@ class ViewportEdge(object):
                 # TODO: make new card
                 # now, cancel
                 self.delete() # does right thing when not settled.
+                self.highlighted_card = None
                 return
             # update graphics
             self.reset_coords()

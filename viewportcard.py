@@ -20,7 +20,7 @@ class ViewportCard(object):
     * canvas: TKinter canvas we get drawn on
     * editing: bool, text is being edited
     * moving: bool, being dragged
-    * moving_edgescroll_id: callback id to scroll periodicall when hovering
+    * moving_edgescroll_id: callback id to scroll periodically when hovering
       near edge of screen
     * resize_state: {}
     * resize_edgescroll_id: as moving_edgescroll_id
@@ -267,7 +267,7 @@ class ViewportCard(object):
         return self.deletion_slot.add(fn)
 
     def remove_deletion_signal(self, handle):
-        self.deletion_slot.add(fn)
+        self.deletion_slot.remove(handle)
 
     def geometry_callback(self):
         x, y = self.canvas_coords()
