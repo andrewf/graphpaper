@@ -64,9 +64,6 @@ class GPViewport(Frame):
                 cards_by_id[edge.dest.obj.oid]
             )
             self.edges.append(new)
-        # test edges
-#        edge = model.Edge(self.data, orig=self.data.get_cards()[0], dest=self.data.get_cards()[1])
-#        self.edge = ViewportEdge(self, self.gpfile, edge, self.cards[0], self.cards[1])
         # set up scrolling
         self.yscroll["command"] = self.canvas.yview
         self.xscroll["command"] = self.canvas.xview
@@ -104,6 +101,12 @@ class GPViewport(Frame):
                 continue
             return card
         return None
+
+    def remove_card(self, c):
+        try:
+            self.cards.remove(c)
+        except ValueError:
+            pass
 
     def utility_frame(self):
         "create and pack a frame for random tools"

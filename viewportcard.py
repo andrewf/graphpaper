@@ -244,6 +244,7 @@ class ViewportCard(object):
             for handle in self.edge_handles:
                 self.canvas.delete(handle)
             self.deletion_slot.signal()
+            self.viewport.remove_card(self)
             self.card.delete()
             self.window.destroy()
             self.gpfile.commit()

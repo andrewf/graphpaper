@@ -26,6 +26,9 @@ class Slot(object):
             pass
     
     def signal(self, *args, **kwargs):
-        for fn in self.d.itervalues():
+        # make a copy of the dict and iterate through
+        # that, so callbacks can remove themselves
+        copy = dict(self.d)
+        for fn in copy.itervalues():
             fn(*args, **kwargs)
 
