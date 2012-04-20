@@ -17,14 +17,13 @@ class ViewportEdge(object):
     * viewport: GPViewport self belongs to
     * canvas: shortcut to viewport canvas
     * itemid: int handle to item on canvas
+    * nodes: [ViewportCard or None], list of orig and dest node.
+    * geom_callbacks: int callback handles for geometry callbacks
+    * deletion_callbacks: callback handles for when card is deleted
+    * coords = [[int]], list of endpoints (post-adjustment)
     * orig: ViewportCard or None
     * dest: ViewportCard or None
-    * orig_geom_callback: int callback handle for geometry callback on orig card
-    * dest_geom_callback: as above, s/orig/dest/g
-    * orig_deletion_callback: callback handle for callback when card is deleted
-    * dest_deletion_callback: ditto
-    * coords = [[int]], list of endpoints (post-adjustment)
-    * dragging_end = when dragging, and index into coords, else None
+    * dragging_end = when dragging, an index into nodes/coords, else None
     * highlighted_card = when dragging, the card we're highlighting (property)
     '''
     def __init__(self, viewport, gpfile, edge, orig, dest):
@@ -48,8 +47,9 @@ class ViewportEdge(object):
         self.canvas = viewport.canvas
         self.gpfile = gpfile
         # callback attrs needed before setting nodes
-        self.orig_geom_callback = self.dest_geom_callback = None 
-        self.orig_deletion_callback = self.dest_deletion_callback = None
+        self.geom_callbacks = [None, None]
+        self.deletion_callbacks = [None, None]
+        self.nodes = [None, None]
         # set nodes
         self.orig = orig
         self.dest = dest
@@ -110,6 +110,20 @@ class ViewportEdge(object):
     def get_coords(self):
         "return self.coords in a flattened list"
         return self.coords[0][0], self.coords[0][1], self.coords[1][0], self.coords[1][1]
+
+    def set_node(self, index, newcard):
+        # clear old callbacks, if needed
+        oldcard = self.nodes[index]
+        if self.geom_callbacks[index] is not None:
+            oldcard.remove_geom_signal(self.geom_callbacks[index])
+            oldcard.remove_deletion_signal(self.deletion_callbacks[index])
+        # register with new card, if needed
+        self.nodes[index] = newcard
+        if newcard is not None:
+            self.geom_callbacks[index] = newcard.add_geom_signal(self.geometry_callback)
+            self.deletion_callbacks[index] = newcard.add_deletion_signal(self.delete)
+            if self.edge:
+                setattr(self.edge, ['orig', 'dest'][index], newcard.card)
 
     def geometry_callback(self, card, x, y, w, h):
         "For passing to ViewportCard slots"
@@ -181,7 +195,7 @@ class ViewportEdge(object):
             )
             # adjust other endpoint
             non_dragging_end = int(not self.dragging_end)
-            non_drag_box = card_box([self.orig, self.dest][non_dragging_end].card)
+            non_drag_box = card_box(self.nodes[non_dragging_end].card)
             self.coords[non_dragging_end] = adjust_point(
                 box_center(non_drag_box),
                 non_drag_box,
@@ -239,31 +253,15 @@ class ViewportEdge(object):
     highlighted_card = property(get_highlighted_card, set_highlighted_card)
 
     def get_orig(self):
-        return self._orig
+        return self.nodes[0]
     def set_orig(self, orig):
-        if self.orig_geom_callback is not None: # let it proxy for both of them
-            self.orig.remove_geom_signal(self.orig_geom_callback)
-            self.orig.remove_deletion_signal(self.orig_deletion_callback)
-        self._orig = orig
-        if orig:
-            self.orig_geom_callback = orig.add_geom_signal(self.geometry_callback)
-            self.orig_deletion_callback = orig.add_deletion_signal(self.delete)
-            if self.edge:
-                self.edge.orig = orig.card
+        self.set_node(0, orig)
     orig = property(get_orig, set_orig)
 
     def get_dest(self):
-        return self._dest
+        return self.nodes[1]
     def set_dest(self, dest):
-        if self.dest_geom_callback is not None:
-            self.dest.remove_geom_signal(self.dest_geom_callback)
-            self.dest.remove_deletion_signal(self.dest_deletion_callback)
-        self._dest = dest
-        if dest:
-            self.dest_geom_callback = dest.add_geom_signal(self.geometry_callback)
-            self.dest_deletion_callback = dest.add_deletion_signal(self.delete)
-            if self.edge:
-                self.edge.dest = dest.card
+        self.set_node(1, dest)
     dest = property(get_dest, set_dest)
 
     @property
