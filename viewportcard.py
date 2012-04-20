@@ -87,15 +87,7 @@ class ViewportCard(object):
                 fill='green',
                 outline=''
             )
-            def foo(event):
-                print 'handle callback'
-                return 'break'
-            def move(event):
-                print 'moving:', event.x, event.y
-                return 'break'
-            def dblclick(event):
-                print 'item double-click'
-                return 'break'
+            self.canvas.addtag_withtag('card_handle_tag', new) # for z-ordering
             self.canvas.tag_bind(new, '<Button-1>', self.handle_click)
             self.canvas.tag_bind(new, '<B1-Motion>', self.handle_mousemove)
             self.canvas.tag_bind(new, '<ButtonRelease-1>', self.handle_mouseup)
@@ -123,6 +115,8 @@ class ViewportCard(object):
             self.edge_handles = [
                 create_circle(b) for b in bboxes
             ]
+        # have to do this every time, every time we recreate the edge handles
+        self.viewport.fix_z_order()
 
     def get_text(self):
         "gets the text from the actual editor, which may not be saved yet"

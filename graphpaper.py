@@ -74,6 +74,8 @@ class GPViewport(Frame):
         # set up drag scrolling
         self.dragging = False
         self.last_drag_coords = None
+        # um, yeah.
+        self.fix_z_order()
 
     def reset_scroll_region(self):
         # set scroll region to bounding box of all card rects
@@ -87,6 +89,13 @@ class GPViewport(Frame):
             box[1] - offset,
             box[2] + offset,
             box[3] + offset)
+
+    def fix_z_order(self):
+        '''
+        Make sure edges are on top of edge handles.
+        '''
+        #print 'fixing z order'
+        self.canvas.tag_raise('edge_tag')
 
     def card_collision(self, p):
         '''

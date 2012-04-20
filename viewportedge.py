@@ -82,6 +82,7 @@ class ViewportEdge(object):
             fill='blue',
             activefill='#6060ff'
         )
+        self.canvas.addtag_withtag('edge_tag', self.itemid)
         self.canvas.tag_bind(self.itemid, "<Button-1>", self.click)
         self.canvas.tag_bind(self.itemid, "<B1-Motion>", self.mousemove)
         self.canvas.tag_bind(self.itemid, "<ButtonRelease-1>", self.mouseup)
