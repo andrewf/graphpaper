@@ -7,6 +7,8 @@ from slot import Slot
 
 from viewportedge import ViewportEdge
 
+from model import MIN_CARD_SIZE
+
 class ViewportCard(object):
     '''
     Manages the graphical representation of a card in a
@@ -52,6 +54,8 @@ class ViewportCard(object):
             self.card.y,
             self.card.w,
             self.card.h,
+            min_width = MIN_CARD_SIZE,
+            min_height = MIN_CARD_SIZE
         )
         self.text = ScrolledText(self.window, wrap=WORD)
         self.text.pack(expand=1, fill='both')

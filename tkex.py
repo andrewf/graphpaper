@@ -13,6 +13,9 @@ class ResizableCanvasFrame(Frame):
     lets up on the border.
     '''
     def __init__(self, master, x, y, w, h, *args, **kwargs):
+        # pull min_width, min_height from kwargs
+        self.min_width = kwargs.pop('min_width', 0)
+        self.min_height = kwargs.pop('min_height', 0)
         # master should be a Canvas
         self.frame_thickness = 5
         Frame.__init__(
@@ -86,6 +89,9 @@ class ResizableCanvasFrame(Frame):
                 new_height -= delta[1]
             elif self.resize_state['bottom_edge']:
                 new_height += (event.y - self.resize_state['last_coords'][1])
+            # normalize sizes
+            new_width = max(new_width, self.min_width)
+            new_height = max(new_height, self.min_height)
             # save new settings in item, not card yet
             self.resize_state['last_coords'] = (event.x, event.y)
             self.canvas.coords(self.itemid, new_x, new_y)
