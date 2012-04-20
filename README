@@ -1,0 +1,26 @@
+Graphpaper is, in short, a notecard simulator, with the additional
+feature that you can show relationships between cards with arrows.
+The default file has more detailed instructions for using the
+program.
+
+Installation:
+
+Graphpaper needs Python with the Tcl/Tk bindings. There are no other
+external dependencies. There are instructions for installing Tk here,
+if you don't already have it after installing Python:
+
+  http://www.tkdocs.com/tutorial/install.html
+
+On Windows, you simply need to install Python from python.org. The
+installer includes Tcl/Tk by default. Then you just need to extract
+the zip archive of graphpaper (or the Git repository) somewhere
+convenient and double-click on graphpaper.py.
+
+On a Mac, you probably already have Python, and may already have Tk,
+but I don't know for sure. If not, try following the directions above.
+
+On Linux, install Python and Tk in whatever manner is appropriate for
+your distro. On Ubuntu, I believe you would use the command:
+
+  sudo apt-get install python tk8.5 python-tk
+
