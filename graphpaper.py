@@ -260,7 +260,7 @@ class GPApp(object):
         if self.viewport:
             self.viewport.destroy()
         self.viewport = GPViewport(self.root, gpfile.GraphPaperFile(filename))
-        self.root.title('GraphPaper - %s' % filename)
+        self.root.title('%s - GraphPaper' % filename)
 
     def newfile(self, *args):
         # *args lets it be both an event binding and menu command
