@@ -78,7 +78,7 @@ class ViewportEdge(object):
             *(self.get_coords()),
             arrow='last',
             smooth='raw',
-            width=6,
+            width=7,
             fill='blue',
             activefill='#6060ff'
         )
