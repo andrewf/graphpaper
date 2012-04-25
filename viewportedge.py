@@ -141,7 +141,7 @@ class ViewportEdge(object):
             otherbox = card_box(self.orig.card)
             self.coords[0] = adjust_point(box_center(otherbox), otherbox, point)
         else:
-            raise 'Card must be either orig or dest.'
+            raise RuntimeError('Card must be either orig or dest.')
         # adjust both ends
         self.refresh()
 
@@ -202,9 +202,11 @@ class ViewportEdge(object):
                 self.coords[self.dragging_end]
             )
             self.refresh()
-            # check out card on other end
-            #print self.viewport.card_collision(self.coords[self.dragging_end])
-            self.highlighted_card = self.viewport.card_collision(self.coords[self.dragging_end])
+            # highlight the card the mouse is over, if it's not
+            # the other end of this edge
+            hover_card = self.viewport.card_collision(self.coords[self.dragging_end])
+            if hover_card is not self.nodes[non_dragging_end]:
+                self.highlighted_card = hover_card
 
     def mouseup(self, event):
         '''
@@ -216,16 +218,23 @@ class ViewportEdge(object):
             # TODO: prevent edge with same card at both ends.
             card = self.viewport.card_collision(self.coords[self.dragging_end])
             if card is not None:
-                if self.dragging_end == 0:
-                    self.orig = card
+                non_dragging_end = int(not self.dragging_end)
+                # don't allow both nodes to be the same
+                if card is not self.nodes[non_dragging_end]:
+                    self.set_node(self.dragging_end, card)
+                    # create edge if needed (if this is first time edge is finished)
+                    if self.edge is None:
+                        self.edge = self.gpfile.graph.new_edge(
+                            orig = self.orig.card,
+                            dest = self.dest.card
+                        )
                 else:
-                    self.dest = card
-                # create edge if needed (if this is first time edge is finished)
-                if self.edge is None:
-                    self.edge = self.gpfile.graph.new_edge(
-                        orig = self.orig.card,
-                        dest = self.dest.card
-                    )
+                    # landed on starting node
+                    # if creating a new edge, need to cancel
+                    if self.edge is None:
+                        self.delete()
+                        self.highlighted_card = None
+                        return
             else:
                 # card is none
                 # TODO: make new card
