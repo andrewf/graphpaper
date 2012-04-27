@@ -28,6 +28,7 @@ class ViewportCard(object):
     * resize_edgescroll_id: as moving_edgescroll_id
     * slot: calls callbacks whenever geometry changes
     * new_edge: if an edge is being dragged out from a handle, this is it.
+    * card_after_new_edge: bool, if we should make a new card when edge is dropped.
     '''
     def __init__(self, viewport, gpfile, card):
         self.card = card
@@ -93,6 +94,7 @@ class ViewportCard(object):
             )
             self.canvas.addtag_withtag('card_handle_tag', new) # for z-ordering
             self.canvas.tag_bind(new, '<Button-1>', self.handle_click)
+            self.canvas.tag_bind(new, '<Shift-Button-1>', self.handle_shift_click)
             self.canvas.tag_bind(new, '<B1-Motion>', self.handle_mousemove)
             self.canvas.tag_bind(new, '<ButtonRelease-1>', self.handle_mouseup)
             return new
@@ -209,6 +211,11 @@ class ViewportCard(object):
             None
         )
         self.new_edge.mousemove(event) # give it a real start pos
+
+    def handle_shift_click(self, event):
+        print 'handle shift click'
+        self.handle_click(event)
+        self.new_edge.make_new_card = True
 
     def handle_mousemove(self, event):
         if self.new_edge:

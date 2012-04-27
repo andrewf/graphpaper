@@ -24,9 +24,11 @@ class ViewportEdge(object):
     * orig: ViewportCard or None
     * dest: ViewportCard or None
     * dragging_end = when dragging, an index into nodes/coords, else None
+    * make_new_card = when dragging, whether we can make a new card if the
+        end gets dragged to nowhere.
     * highlighted_card = when dragging, the card we're highlighting (property)
     '''
-    def __init__(self, viewport, gpfile, edge, orig, dest):
+    def __init__(self, viewport, gpfile, edge, orig, dest, make_new_card=False):
         '''
         Either load an edge from the datastore, or start creating
         a new one. If edge is None, we're creating a new edge and
@@ -40,6 +42,8 @@ class ViewportEdge(object):
         * edge: model.Edge that we will be managing, or None if creating a new edge.
         * orig: ViewportCard or None, if dragging a new edge
         * dest: as above, but more likely.
+        * make_new_card: bool, optional. If this is a new edge, and we get
+            dropped off of a card, make a new one.
         '''
         # store all the arguments
         self.edge = edge
@@ -72,6 +76,7 @@ class ViewportEdge(object):
             initpos = nondrag.canvas_coords()
             self.coords = [initpos, (initpos[0] + 10, initpos[1] + 10)]
         self._highlighted_card = None
+        self.make_new_card = make_new_card
         # draw self
         self.itemid = self.canvas.create_line(
             # have to unpack self.get_coords as first args, not last
@@ -215,10 +220,9 @@ class ViewportEdge(object):
 #        print 'mouseup'
         if self.dragging_end is not None:
             # set new end
-            # TODO: prevent edge with same card at both ends.
+            non_dragging_end = int(not self.dragging_end)
             card = self.viewport.card_collision(self.coords[self.dragging_end])
             if card is not None:
-                non_dragging_end = int(not self.dragging_end)
                 # don't allow both nodes to be the same
                 if card is not self.nodes[non_dragging_end]:
                     self.set_node(self.dragging_end, card)
@@ -236,12 +240,33 @@ class ViewportEdge(object):
                         self.highlighted_card = None
                         return
             else:
-                # card is none
-                # TODO: make new card
-                # now, cancel
-                self.delete() # does right thing when not settled.
-                self.highlighted_card = None
-                return
+                print 'dropped nowhere', self.make_new_card
+                # we got dropped nowhere
+                if self.make_new_card:
+                    print 'making new card'
+                    new_card =  self.viewport.new_card(
+                            self.canvas.canvasx(event.x),
+                            self.canvas.canvasy(event.y),
+                            200,
+                            150
+                    )
+                    self.set_node(
+                        self.dragging_end,
+                        new_card
+                    )
+                    if self.edge is None:
+                        self.edge = self.gpfile.graph.new_edge(
+                            orig = self.orig.card,
+                            dest = self.dest.card
+                        )
+                    self.gpfile.commit()
+                else:
+                    print 'canceling'
+                    # else, cancel
+                    self.delete() # does right thing when not settled.
+                    self.highlighted_card = None
+                    return
+            self.make_new_card = False
             # update graphics
             self.reset_coords()
             self.refresh()
