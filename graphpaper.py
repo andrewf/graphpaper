@@ -83,7 +83,7 @@ class GPViewport(Frame):
         box = self.canvas.bbox(ALL)
         if not box:
             return # no objects, we'll have to set scrollregion later
-        offset = 20
+        offset = 200
         self.canvas["scrollregion"] = (
             box[0] - offset,
             box[1] - offset,
