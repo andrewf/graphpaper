@@ -83,7 +83,7 @@ class GPViewport(Frame):
         box = self.canvas.bbox(ALL)
         if not box:
             return # no objects, we'll have to set scrollregion later
-        offset = 20
+        offset = 200
         self.canvas["scrollregion"] = (
             box[0] - offset,
             box[1] - offset,
@@ -123,7 +123,6 @@ class GPViewport(Frame):
         self.util.pack(fill="y", side=LEFT)
 
     def new_card(self, x, y, w, h):
-        print 'new card', x, y, w, h
         newcard = ViewportCard(
             self,
             self.gpfile,
