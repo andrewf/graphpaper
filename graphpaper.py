@@ -123,7 +123,6 @@ class GPViewport(Frame):
         self.util.pack(fill="y", side=LEFT)
 
     def new_card(self, x, y, w, h):
-        print 'new card', x, y, w, h
         newcard = ViewportCard(
             self,
             self.gpfile,
