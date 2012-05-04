@@ -244,12 +244,13 @@ class ViewportEdge(object):
                 # we got dropped nowhere
                 if self.make_new_card:
                     print 'making new card'
-                    new_card =  self.viewport.new_card(
-                            self.canvas.canvasx(event.x),
-                            self.canvas.canvasy(event.y),
-                            200,
-                            150
+                    new_geom = new_card_geometry(
+                        (self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)),
+                        self.coords[non_dragging_end],
+                        int(self.gpfile.config.get('default_card_w', 200)),
+                        int(self.gpfile.config.get('default_card_h', 150))
                     )
+                    new_card = self.viewport.new_card(*new_geom)
                     self.set_node(
                         self.dragging_end,
                         new_card
@@ -338,6 +339,40 @@ def adjust_point(p1, box, p2):
         return (relevant_x, wall_y)
     # if we get here, we know the intersection is on the top or bottom
     return x(relevant_y), relevant_y
+
+def new_card_geometry(mouse, other_end, new_width, new_height):
+    '''
+    Figure out how to place a new box so it fits nicely with
+    the old box and current edge position
+
+    Arguments:
+    * mouse: (x, y), mouse pos
+    * other_end: (x, y), other end of edge
+    * new_width, new_height, size that new card should be
+
+    Returns (x, y, w, h) of new card.
+    '''
+    print 'geom'
+    edge_rise = mouse[1] - other_end[1]
+    edge_run = (mouse[0] - other_end[0]) or .0001 # cheater's way out of zero-div
+    edge_slope = float(edge_rise) / edge_run
+    new_box_aspect = float(new_height) / new_width
+    # determine if arrow comes in on side or top/bot of new card
+    if abs(edge_slope) < abs(new_box_aspect):
+        # on side
+        if edge_run < 0:
+            new_x = mouse[0] - new_width
+        else:
+            new_x = mouse[0]
+        new_y = mouse[1] - new_height / 2
+    else:
+        if edge_rise < 0:
+            new_y = mouse[1] - new_height
+        else:
+            new_y = mouse[1]
+        new_x = mouse[0] - new_width / 2
+    print '  ', locals()
+    return (new_x, new_y, new_width, new_height)
 
 def card_box(card):
     '''

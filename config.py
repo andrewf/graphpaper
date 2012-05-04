@@ -25,3 +25,6 @@ class ConfigDict(object):
     def __setitem__(self, key, value):
         self.conn.execute("insert into config values (?, ?)", (key, value))
         self.conn.commit()
+
+    def get(self, key, default=None):
+        return self[key] or default
