@@ -9,7 +9,7 @@ CARD_OBJTYPE = 'card'
 EDGE_OBJTYPE = 'edge'
 objtype = 'objtype'
 
-MIN_CARD_SIZE = 70
+MIN_CARD_SIZE = 30
 
 class Error(Exception):
     pass

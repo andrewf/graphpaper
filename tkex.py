@@ -17,7 +17,7 @@ class ResizableCanvasFrame(Frame):
         self.min_width = kwargs.pop('min_width', 0)
         self.min_height = kwargs.pop('min_height', 0)
         # master should be a Canvas
-        self.frame_thickness = 5
+        self.frame_thickness = 7
         Frame.__init__(
             self,
             master,
