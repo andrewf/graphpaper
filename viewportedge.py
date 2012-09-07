@@ -179,20 +179,16 @@ class ViewportEdge(object):
         end_x, end_y = self.coords[1]
         to_orig = sqrt((start_x - x)**2 + (start_y - y)**2)
         to_dest = sqrt((end_x - x)**2 + (end_y - y)**2)
-        #print locals()
         if to_orig < to_dest:
             self.dragging_end = 0
-        elif to_dest < to_orig:
-            self.dragging_end = 1
         else:
-            print 'seriously?'
+            self.dragging_end = 1
 
     def mousemove(self, event):
         '''
         Update dragging_end based on mousemove. Notify Viewport.
         Later, highlight card.
         '''
-#        print 'mousemove', event.x, event.y, self.dragging_end
         if self.dragging_end is not None:
             self.coords[self.dragging_end] = (
                 self.canvas.canvasx(event.x),
@@ -217,7 +213,6 @@ class ViewportEdge(object):
         '''
         Choose card to land on. reset coords
         '''
-#        print 'mouseup'
         if self.dragging_end is not None:
             # set new end
             non_dragging_end = int(not self.dragging_end)
@@ -240,10 +235,8 @@ class ViewportEdge(object):
                         self.highlighted_card = None
                         return
             else:
-                print 'dropped nowhere', self.make_new_card
                 # we got dropped nowhere
                 if self.make_new_card:
-                    print 'making new card'
                     new_geom = new_card_geometry(
                         (self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)),
                         self.coords[non_dragging_end],
@@ -262,7 +255,6 @@ class ViewportEdge(object):
                         )
                     self.gpfile.commit()
                 else:
-                    print 'canceling'
                     # else, cancel
                     self.delete() # does right thing when not settled.
                     self.highlighted_card = None
@@ -352,7 +344,6 @@ def new_card_geometry(mouse, other_end, new_width, new_height):
 
     Returns (x, y, w, h) of new card.
     '''
-    print 'geom'
     edge_rise = mouse[1] - other_end[1]
     edge_run = (mouse[0] - other_end[0]) or .0001 # cheater's way out of zero-div
     edge_slope = float(edge_rise) / edge_run
@@ -371,7 +362,6 @@ def new_card_geometry(mouse, other_end, new_width, new_height):
         else:
             new_y = mouse[1]
         new_x = mouse[0] - new_width / 2
-    print '  ', locals()
     return (new_x, new_y, new_width, new_height)
 
 def card_box(card):

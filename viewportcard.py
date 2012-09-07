@@ -213,7 +213,6 @@ class ViewportCard(object):
         self.new_edge.mousemove(event) # give it a real start pos
 
     def handle_shift_click(self, event):
-        print 'handle shift click'
         self.handle_click(event)
         self.new_edge.make_new_card = True
 
@@ -230,7 +229,6 @@ class ViewportCard(object):
         self.redraw_edge_handles()
 
     def focusin(self, event):
-        #print "focusing text"
         self.editing = True
 
     def focusout(self, event):

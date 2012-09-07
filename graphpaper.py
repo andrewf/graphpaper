@@ -94,7 +94,6 @@ class GPViewport(Frame):
         '''
         Make sure edges are on top of edge handles.
         '''
-        #print 'fixing z order'
         self.canvas.tag_raise('edge_tag')
 
     def card_collision(self, p):
